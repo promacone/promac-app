@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824163257'
+} from '../frete.js?v=20260824163612'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260824163257'
-import { rotaComMemoria } from '../qualp.js?v=20260824163257'
-import { campoDeCidade } from '../cidades.js?v=20260824163257'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824163257'
+} from '../fracionado.js?v=20260824163612'
+import { rotaComMemoria } from '../qualp.js?v=20260824163612'
+import { campoDeCidade } from '../cidades.js?v=20260824163612'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824163612'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -36,19 +36,19 @@ export function telaFreteFracionado({ parametros }) {
   }
 
   /**
-   * Lê uma medida aceitando metros ou centímetros.
+   * Medidas são digitadas em centímetros, sempre.
    *
-   * Na prática ninguém digita "1,70": digita "170", porque é assim que
-   * se fala. Só que 170 lidos como metros viram uma carga do tamanho de
-   * um quarteirão — foi exatamente o erro que apareceu no primeiro uso.
+   * A primeira versão pedia metros e o Pedro digitou centímetros — 170
+   * virou 170 m. A segunda tentava adivinhar pela grandeza do número, e
+   * uma caixa de 17 cm virou 17 m. Adivinhar unidade não funciona: ou o
+   * palpite erra para um lado, ou para o outro.
    *
-   * O corte em 20 é seguro: nenhum volume de carga passa de 20 m (a
-   * própria carreta tem 15), e ninguém descreve uma caixa como "0,20"
-   * digitando "20 metros".
+   * Centímetro é a unidade em que o setor fala ("um pallet de 120 por
+   * 100"), então o campo é isso e pronto. A conversão aparece escrita no
+   * subtotal do volume — quem digitar errado vê na hora.
    */
   function medidaEmMetros(valor) {
-    const n = numero(valor)
-    return n > 20 ? n / 100 : n
+    return numero(valor) / 100
   }
 
   /** Soma m³ e kg de todos os volumes digitados. */
@@ -77,8 +77,8 @@ export function telaFreteFracionado({ parametros }) {
     const r = regiao(estado.regiao)
     const bau = capacidadeM3(r.caminhao)
     areaAjudaVolumes.textContent = bau
-      ? `Digite em metros (1,20) ou em centímetros (120) — números acima de 20 são lidos como centímetros. A carreta de referência leva ${r.caminhao.capacidadeKg / 1000} t em ${m3(bau)} m³ (${m3(r.caminhao.bau.comprimento)} × ${m3(r.caminhao.bau.largura)} × ${m3(r.caminhao.bau.altura)}). A carga paga a fração que ocupar — em peso ou em espaço, o que for maior.`
-      : `Digite em metros (1,20) ou em centímetros (120) — números acima de 20 são lidos como centímetros. Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`
+      ? `Medidas em centímetros: 1,20 m é 120. A carreta de referência leva ${r.caminhao.capacidadeKg / 1000} t em ${m3(bau)} m³ (15 × 2,40 × 2,80 m). A carga paga a fração que ocupar — em peso ou em espaço, o que for maior.`
+      : `Medidas em centímetros: 1,20 m é 120. Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`
   }
   const areaTabelas = el('div', { classe: 'tabelas-preco' })
   const areaDestino = el('div')
@@ -267,9 +267,9 @@ export function telaFreteFracionado({ parametros }) {
       ]),
 
       el('div', { classe: 'volume__medidas' }, [
-        medida('Compr. (m)', 'comprimento', '1,20'),
-        medida('Larg. (m)', 'largura', '1,00'),
-        medida('Alt. (m)', 'altura', '1,10'),
+        medida('Compr. (cm)', 'comprimento', '120'),
+        medida('Larg. (cm)', 'largura', '100'),
+        medida('Alt. (cm)', 'altura', '110'),
       ]),
 
       el('div', { classe: 'volume__linha2' }, [
