@@ -133,9 +133,7 @@ export function telaContratacoes(sessao) {
     desenharColunas()
   }
 
-  const areaColunas = el('div', {
-    style: 'display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;margin:0 -16px;padding-left:16px;padding-right:16px;-webkit-overflow-scrolling:touch',
-  })
+  const areaColunas = el('div', { classe: 'quadro' })
 
   function desenharColunas() {
     const lista = filtrados()
@@ -146,19 +144,18 @@ export function telaContratacoes(sessao) {
         .sort((a, b) => (a.previsaoEntrega || 0) - (b.previsaoEntrega || 0))
 
       return el('div', {
-        style: 'min-width:270px;max-width:270px;background:rgba(0,0,0,.04);border-radius:14px;padding:10px;display:grid;gap:10px;align-content:start',
+        classe: 'coluna',
+        // A cor da etapa vale para a coluna inteira: faixa, contador e o
+        // botão de avançar das fichas lá dentro.
+        style: `--cor-etapa:${etapa.cor}`,
       }, [
-        el('div', { style: 'display:flex;align-items:center;gap:8px' }, [
-          el('span', { style: `width:10px;height:10px;border-radius:50%;background:${etapa.cor}` }),
-          el('strong', { style: 'font-size:13px;flex:1', texto: etapa.titulo }),
-          el('span', {
-            style: `background:${etapa.cor};color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px`,
-            texto: String(cartoes.length),
-          }),
+        el('div', { classe: 'coluna__topo' }, [
+          el('span', { classe: 'coluna__nome', texto: etapa.titulo }),
+          el('span', { classe: 'coluna__contador', texto: String(cartoes.length) }),
         ]),
         ...(cartoes.length
           ? cartoes.map(cartao)
-          : [el('div', { classe: 'campo__ajuda', style: 'text-align:center;padding:18px 0', texto: 'Vazio' })]),
+          : [el('div', { classe: 'coluna__vazia', texto: 'Nenhuma carga' })]),
       ])
     }))
   }
@@ -182,27 +179,30 @@ export function telaContratacoes(sessao) {
     const proximo = ESTAGIOS[indice + 1]
 
     return el('div', {
-      classe: 'cartao',
-      style: `padding:12px;border-left:4px solid ${etapa.cor};display:grid;gap:8px;cursor:pointer`,
+      classe: 'ficha',
       onclick: () => abrirFormulario(frete),
     }, [
-      el('div', { style: 'display:flex;justify-content:space-between;gap:8px;align-items:start' }, [
-        el('strong', { style: 'font-size:14px;color:var(--azul)', texto: frete.cliente || 'Sem cliente' }),
+      el('div', { classe: 'ficha__topo' }, [
+        el('span', { classe: 'ficha__cliente', texto: frete.cliente || 'Sem cliente' }),
+        // "Normal" não ganha etiqueta: marcar tudo faria as cargas
+        // realmente urgentes se perderem no meio.
         frete.prioridade && frete.prioridade !== 'normal'
           ? el('span', {
-              style: `font-size:9px;font-weight:800;color:#fff;border-radius:99px;padding:2px 7px;background:${frete.prioridade === 'urgente' ? 'var(--vermelho)' : 'var(--amarelo)'}`,
+              classe: 'ficha__etiqueta',
+              style: `background:${frete.prioridade === 'urgente' ? '#d93636' : '#e09a10'}`,
               texto: frete.prioridade === 'urgente' ? 'URGENTE' : 'PRIORITÁRIA',
             })
           : null,
       ]),
 
-      el('div', { style: 'font-size:12px;color:var(--texto-fraco)' }, [
+      el('div', { classe: 'ficha__rota' }, [
         el('div', { texto: `↑ ${frete.cidadeColeta || '—'}` }),
         el('div', { texto: `↓ ${frete.cidadeEntrega || '—'}` }),
       ]),
 
+      // Motorista só aparece depois de contratado — antes disso não existe.
       frete.motoristaNome && indice >= 2
-        ? el('div', { style: 'font-size:12px;color:var(--azul-claro)' }, [
+        ? el('div', { classe: 'ficha__motorista' }, [
             el('div', { texto: `👤 ${frete.motoristaNome}` }),
             frete.placa ? el('div', { texto: `🚚 ${String(frete.placa).toUpperCase()}` }) : null,
             frete.motoristaTelefone ? el('div', { texto: `📞 ${frete.motoristaTelefone}` }) : null,
@@ -210,39 +210,38 @@ export function telaContratacoes(sessao) {
         : null,
 
       frete.estagio === 'emRota' && frete.saiuEm
-        ? el('div', { classe: 'campo__ajuda', texto: `Saiu em ${dataHora(frete.saiuEm)}` })
+        ? el('div', { classe: 'ficha__carimbo', texto: `Saiu em ${dataHora(frete.saiuEm)}` })
         : null,
       frete.estagio === 'entregue' && frete.entregueEm
-        ? el('div', { classe: 'campo__ajuda', texto: `Entregue em ${dataHora(frete.entregueEm)}` })
+        ? el('div', { classe: 'ficha__carimbo', texto: `Entregue em ${dataHora(frete.entregueEm)}` })
         : null,
 
-      el('div', { style: 'display:flex;justify-content:space-between;font-size:12px' }, [
-        el('span', { classe: 'campo__ajuda', texto: frete.tipoVeiculo || '' }),
-        el('strong', { style: 'color:var(--azul)', texto: reais(frete.valorFrete || 0) }),
+      el('div', { classe: 'ficha__rodape' }, [
+        el('span', { texto: frete.tipoVeiculo || '' }),
+        el('span', { classe: 'ficha__valor', texto: reais(frete.valorFrete || 0) }),
       ]),
 
       frete.previsaoEntrega
         ? el('div', {
-            classe: 'campo__ajuda',
-            style: atrasado ? 'color:var(--vermelho);font-weight:700' : '',
+            classe: atrasado ? 'ficha__carimbo ficha__atrasado' : 'ficha__carimbo',
             texto: `${atrasado ? '⚠ ' : ''}Entrega: ${dataCurta(frete.previsaoEntrega)}`,
           })
         : null,
 
-      // Botões de mover: no celular, arrastar brigaria com a rolagem.
-      el('div', { style: 'display:flex;gap:8px', onclick: (e) => e.stopPropagation() }, [
+      // Botões de mover em vez de arrastar: no celular, arrastar brigaria
+      // com a rolagem da coluna e do quadro.
+      el('div', { classe: 'ficha__acoes', onclick: (e) => e.stopPropagation() }, [
         anterior
           ? el('button', {
-              classe: 'botao',
-              style: 'background:transparent;color:var(--cinza);border:1.5px solid var(--borda);min-height:38px;padding:6px;font-size:12px',
-              texto: `← ${anterior.titulo}`,
+              classe: 'ficha__mover ficha__mover--voltar',
+              texto: '← Voltar',
+              title: `Voltar para ${anterior.titulo}`,
               onclick: () => salvar(movido(frete, anterior.id)),
             })
           : null,
         proximo
           ? el('button', {
-              classe: 'botao',
-              style: `min-height:38px;padding:6px;font-size:12px;background:${etapa.cor}`,
+              classe: 'ficha__mover ficha__mover--avancar',
               texto: `${proximo.titulo} →`,
               onclick: () => salvar(movido(frete, proximo.id)),
             })

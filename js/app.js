@@ -209,6 +209,7 @@ function modulosDisponiveis() {
       descricao: 'Quadro das cargas, da coleta à entrega',
       icone: ICONES.contratacoes,
       cor: '#f2b317',
+      largo: true,
       tela: () => telaContratacoes(sessao),
     },
     // Equipe só existe para quem administra — os colaboradores nem veem
@@ -264,6 +265,11 @@ function abrirModulo(id) {
   if (!modulo) return
 
   $('#modulo-titulo').textContent = modulo.titulo
+
+  // O quadro precisa da tela inteira; os outros módulos ficam na largura
+  // de leitura, que é mais confortável para formulário.
+  $('#modulo-conteudo').classList.toggle('conteudo--largo', modulo.largo === true)
+
   render($('#modulo-conteudo'), modulo.tela())
   mostrar('modulo')
   window.scrollTo(0, 0)

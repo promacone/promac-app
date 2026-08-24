@@ -452,3 +452,152 @@ select {
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Quadro de contratações ---------- */
+
+/* O quadro precisa da tela inteira: cinco colunas numa largura de leitura
+ * de 620px viraria um corredor apertado. Só ele escapa da largura máxima
+ * do conteúdo. */
+.conteudo--largo {
+  max-width: none;
+  padding: 0;
+  gap: 0;
+}
+
+.quadro {
+  background: var(--azul);
+  padding: 14px;
+  overflow-x: auto;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  /* Encosta nas bordas da tela e ocupa o que sobra da altura. */
+  min-height: calc(100dvh - 132px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.coluna {
+  min-width: 290px;
+  max-width: 290px;
+  background: #f4f6fa;
+  border-radius: 12px;
+  padding: 0 0 10px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  max-height: calc(100dvh - 160px);
+  overflow-y: auto;
+}
+
+/* A faixa colorida no topo é o que dá o "de relance" do Pipefy. */
+.coluna__topo {
+  position: sticky;
+  top: 0;
+  background: #f4f6fa;
+  border-top: 4px solid var(--cor-etapa);
+  border-radius: 12px 12px 0 0;
+  padding: 12px 12px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.coluna__nome {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--cor-etapa);
+  flex: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+}
+
+.coluna__contador {
+  background: var(--cor-etapa);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 99px;
+  padding: 2px 9px;
+  flex-shrink: 0;
+}
+
+.coluna__vazia {
+  text-align: center;
+  padding: 26px 0;
+  color: #9aa3b4;
+  font-size: 13px;
+  margin: 0 10px;
+  border: 1.5px dashed #d5dbe6;
+  border-radius: 10px;
+}
+
+.ficha {
+  background: #fff;
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 0 10px;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(20, 25, 45, 0.06);
+  transition: box-shadow 0.15s, transform 0.1s;
+  color: #1c2130;
+}
+
+.ficha:hover { box-shadow: 0 4px 14px rgba(20, 25, 45, 0.14); }
+.ficha:active { transform: scale(0.995); }
+
+.ficha__topo { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.ficha__cliente { font-size: 14px; font-weight: 700; color: #16204a; line-height: 1.3; }
+
+.ficha__etiqueta {
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  border-radius: 99px;
+  padding: 3px 7px;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+
+.ficha__rota { font-size: 12px; color: #5d6579; display: grid; gap: 2px; }
+.ficha__motorista { font-size: 12px; color: #1a6ea8; display: grid; gap: 2px; }
+.ficha__carimbo { font-size: 11px; color: #7a8397; }
+
+.ficha__rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid #eef1f6;
+  padding-top: 8px;
+  font-size: 12px;
+  color: #5d6579;
+}
+
+.ficha__valor { font-weight: 800; color: #16204a; font-size: 13px; }
+.ficha__atrasado { color: #c62828; font-weight: 700; }
+
+.ficha__acoes { display: flex; gap: 6px; }
+
+.ficha__mover {
+  flex: 1;
+  border-radius: 8px;
+  padding: 7px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  min-height: 34px;
+  line-height: 1.2;
+}
+
+.ficha__mover--voltar { background: #eef1f6; color: #5d6579; }
+.ficha__mover--avancar { background: var(--cor-etapa); color: #fff; }
+
+/* Numa tela grande, as cinco colunas cabem lado a lado sem rolagem. */
+@media (min-width: 1100px) {
+  .coluna { min-width: 0; max-width: none; flex: 1; }
+  .quadro { overflow-x: visible; }
+}
