@@ -9,15 +9,15 @@ import {
   auth, onAuthStateChanged, signInWithEmailAndPassword,
   createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
   updateProfile, mensagemDeErro, lembrarNesteAparelho,
-} from './firebase.js?v=20260824135249'
-import { buscarMembro, marcarQueEntrou, carregarParametros } from './equipe.js?v=20260824135249'
-import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260824135249'
-import { telaCotacao } from './telas/cotacao.js?v=20260824135249'
-import { telaContratacoes } from './telas/contratacoes.js?v=20260824135249'
-import { telaEquipe } from './telas/equipe.js?v=20260824135249'
-import { telaConfiguracoes } from './telas/configuracoes.js?v=20260824135249'
-import { telaConta } from './telas/conta.js?v=20260824135249'
-import { telaInicio } from './telas/inicio.js?v=20260824135249'
+} from './firebase.js?v=20260824140800'
+import { buscarMembro, marcarQueEntrou, carregarParametros } from './equipe.js?v=20260824140800'
+import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260824140800'
+import { telaCotacao } from './telas/cotacao.js?v=20260824140800'
+import { telaContratacoes } from './telas/contratacoes.js?v=20260824140800'
+import { telaEquipe } from './telas/equipe.js?v=20260824140800'
+import { telaConfiguracoes } from './telas/configuracoes.js?v=20260824140800'
+import { telaConta } from './telas/conta.js?v=20260824140800'
+import { telaInicio } from './telas/inicio.js?v=20260824140800'
 
 // Guarda o app para funcionar sem sinal e evita que o celular fique com
 // telas antigas depois de uma atualização.

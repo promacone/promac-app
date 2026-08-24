@@ -4,11 +4,12 @@
 // rolagem da página.
 
 import {
-  bd, doc, setDoc, updateDoc, deleteDoc, collection, getDocs, arrayUnion,
-} from '../firebase.js?v=20260824135249'
-import { reais } from '../frete.js?v=20260824135249'
-import { el, render, campo, linha, mostrarAviso, seletor } from '../ui.js?v=20260824135249'
-import { tornarArrastavel } from '../arrastar.js?v=20260824135249'
+  bd, doc, setDoc, updateDoc, deleteDoc, collection, getDocs, arrayUnion, arrayRemove,
+} from '../firebase.js?v=20260824140800'
+import { reais } from '../frete.js?v=20260824140800'
+import { el, render, campo, linha, mostrarAviso, seletor } from '../ui.js?v=20260824140800'
+import { tornarArrastavel } from '../arrastar.js?v=20260824140800'
+import { enviarAnexo, apagarAnexo, erroDeAnexo, tamanhoLegivel, storageDisponivel } from '../anexos.js?v=20260824140800'
 
 /** Os fretes de verdade, no Firestore. */
 export function firestore() {
@@ -25,7 +26,7 @@ export function firestore() {
       // versão que o escritório carregou (sem a anotação nova) voltaria
       // por cima e apagaria o que a rua escreveu. Anotação só entra por
       // arrayUnion, nunca por aqui.
-      const { id, anotacoes, ...campos } = frete
+      const { id, anotacoes, anexos, ...campos } = frete
       await setDoc(doc(bd, 'viagens', id), campos, { merge: true })
     },
     async apagar(id) {
@@ -41,6 +42,19 @@ export function firestore() {
      */
     async anotar(id, entrada) {
       await updateDoc(doc(bd, 'viagens', id), { anotacoes: arrayUnion(entrada) })
+    },
+    /** Registra um anexo já enviado. Mesmo cuidado do diário. */
+    async registrarAnexo(id, anexo) {
+      await updateDoc(doc(bd, 'viagens', id), { anexos: arrayUnion(anexo) })
+    },
+    /**
+     * Tira um anexo da lista.
+     *
+     * Aqui é arrayRemove e não uma reescrita: outra pessoa pode estar
+     * anexando no mesmo frete neste instante.
+     */
+    async removerAnexo(id, anexo) {
+      await updateDoc(doc(bd, 'viagens', id), { anexos: arrayRemove(anexo) })
     },
   }
 }
@@ -615,6 +629,9 @@ export function telaContratacoes(sessao, repositorio = firestore()) {
             ])
           : null,
 
+        // Só na entrega: é quando o canhoto assinado existe.
+        frete.estagio === 'entregue' ? anexos(frete) : null,
+
         diario(frete),
 
         el('div', { classe: 'cartao' }, [
@@ -639,6 +656,142 @@ export function telaContratacoes(sessao, repositorio = firestore()) {
           },
         }),
       )
+    }
+
+    /**
+     * Canhoto e fotos da entrega.
+     *
+     * O canhoto assinado é a prova de que a carga chegou. Preso à carga,
+     * com data e nome de quem anexou, ele continua achável quando o
+     * cliente contestar a entrega meses depois — o que não acontece
+     * quando a foto fica perdida numa conversa de WhatsApp.
+     */
+    function anexos(frete) {
+      const lista = [...(frete.anexos || [])].sort((a, b) => (b.em || 0) - (a.em || 0))
+      const avisoAnexo = el('div')
+
+      const escolher = el('input', {
+        type: 'file',
+        accept: 'image/*,application/pdf',
+        multiple: true,
+        style: 'display:none',
+      })
+
+      const botao = el('button', {
+        classe: 'botao',
+        texto: 'Anexar canhoto ou foto',
+        onclick: () => escolher.click(),
+      })
+
+      // Avisa de cara se o espaço de arquivos não existe, em vez de deixar
+      // a pessoa esperar um minuto por um erro que não explica nada.
+      storageDisponivel().then((tem) => {
+        if (tem) return
+        botao.disabled = true
+        mostrarAviso(avisoAnexo,
+          'Os anexos ainda não estão ativos: falta criar o espaço de arquivos no Firebase. '
+          + 'As instruções estão no arquivo ATIVAR-ANEXOS.md.', 'atencao')
+      })
+
+      escolher.addEventListener('change', async () => {
+        const arquivos = [...escolher.files]
+        // Limpa já: escolher o mesmo arquivo duas vezes seguidas não
+        // dispara "change" se o valor continuar lá.
+        escolher.value = ''
+        if (!arquivos.length) return
+
+        botao.disabled = true
+        const autor = sessao.membro?.nome || sessao.usuario?.email || 'Equipe'
+        let enviados = 0
+
+        for (const [indice, arquivo] of arquivos.entries()) {
+          botao.textContent = arquivos.length > 1
+            ? `Enviando ${indice + 1} de ${arquivos.length}…`
+            : 'Enviando…'
+
+          try {
+            const anexo = await enviarAnexo(frete.id, arquivo, autor)
+            await repositorio.registrarAnexo(frete.id, anexo)
+
+            const alvo = buscar()
+            alvo.anexos = [...(alvo.anexos || []), anexo]
+            enviados += 1
+          } catch (erro) {
+            mostrarAviso(avisoAnexo, `${arquivo.name}: ${erroDeAnexo(erro)}`)
+            break
+          }
+        }
+
+        botao.disabled = false
+        botao.textContent = 'Anexar canhoto ou foto'
+
+        if (enviados) {
+          desenharColunas()
+          desenharFicha()
+        }
+      })
+
+      async function removerUm(anexo) {
+        if (!confirm(`Apagar "${anexo.nome}"? Isso não pode ser desfeito.`)) return
+
+        try {
+          await repositorio.removerAnexo(frete.id, anexo)
+          await apagarAnexo(anexo.caminho)
+
+          const alvo = buscar()
+          alvo.anexos = (alvo.anexos || []).filter((a) => a.id !== anexo.id)
+
+          desenharColunas()
+          desenharFicha()
+        } catch {
+          mostrarAviso(avisoAnexo, 'Não consegui apagar o anexo. Tente de novo.')
+        }
+      }
+
+      return el('div', { classe: 'cartao' }, [
+        el('div', { classe: 'secao__titulo', texto: `Canhoto e fotos da entrega (${lista.length})` }),
+        el('p', {
+          classe: 'campo__ajuda',
+          texto: 'Tire a foto na hora ou escolha da galeria. As imagens são reduzidas antes de subir, para funcionar no 4G.',
+        }),
+        escolher,
+        botao,
+        avisoAnexo,
+
+        lista.length
+          ? el('div', { classe: 'anexos' }, lista.map((anexo) => {
+              const imagem = String(anexo.tipo || '').startsWith('image/')
+              return el('div', { classe: 'anexo' }, [
+                el('a', {
+                  classe: 'anexo__abrir',
+                  href: anexo.url,
+                  target: '_blank',
+                  rel: 'noopener',
+                }, [
+                  imagem
+                    ? el('img', { classe: 'anexo__miniatura', src: anexo.url, alt: anexo.nome, loading: 'lazy' })
+                    : el('div', { classe: 'anexo__miniatura anexo__miniatura--arquivo', texto: 'PDF' }),
+                  el('div', { classe: 'anexo__dados' }, [
+                    el('div', { classe: 'anexo__nome', texto: anexo.nome }),
+                    el('div', {
+                      classe: 'anexo__detalhe',
+                      texto: [dataHora(anexo.em), anexo.autor, tamanhoLegivel(anexo.tamanho)]
+                        .filter(Boolean).join(' · '),
+                    }),
+                  ]),
+                ]),
+                el('button', {
+                  classe: 'ficha__apagar',
+                  type: 'button',
+                  title: 'Apagar anexo',
+                  'aria-label': `Apagar ${anexo.nome}`,
+                  texto: '×',
+                  onclick: () => removerUm(anexo),
+                }),
+              ])
+            }))
+          : null,
+      ])
     }
 
     /**

@@ -50,10 +50,10 @@ const repositorio = {
   async listar() { return fretes.map((f) => ({ ...f })) },
   async salvar(frete) {
     // Igual ao Firestore: salvar preserva o diário em vez de sobrescrevê-lo.
-    const { anotacoes, ...campos } = frete
+    const { anotacoes, anexos, ...campos } = frete
     const i = fretes.findIndex((f) => f.id === frete.id)
     if (i >= 0) fretes[i] = { ...fretes[i], ...campos }
-    else fretes.push({ ...campos, anotacoes: anotacoes || [] })
+    else fretes.push({ ...campos, anotacoes: anotacoes || [], anexos: anexos || [] })
     window.ultimoSalvo = frete
   },
   async apagar(id) {
@@ -65,6 +65,15 @@ const repositorio = {
     if (!frete) throw new Error('frete não existe')
     frete.anotacoes = [...(frete.anotacoes || []), entrada]
     window.ultimaAnotacao = entrada
+  },
+  async registrarAnexo(id, anexo) {
+    const frete = fretes.find((f) => f.id === id)
+    frete.anexos = [...(frete.anexos || []), anexo]
+    window.ultimoAnexo = anexo
+  },
+  async removerAnexo(id, anexo) {
+    const frete = fretes.find((f) => f.id === id)
+    frete.anexos = (frete.anexos || []).filter((a) => a.id !== anexo.id)
   },
 }
 

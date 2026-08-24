@@ -36,6 +36,7 @@ import {
   getDocs,
   serverTimestamp,
   arrayUnion,
+  arrayRemove,
 } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js'
 
 const configuracao = {
@@ -47,7 +48,8 @@ const configuracao = {
   appId: '1:777653384143:web:5dcb955a7ac78fbeed18ba',
 }
 
-const app = initializeApp(configuracao)
+// Exportado para o módulo de anexos criar o Storage sobre o mesmo app.
+export const app = initializeApp(configuracao)
 
 export const auth = getAuth(app)
 export const bd = getFirestore(app)
@@ -160,6 +162,7 @@ export {
   // Acrescenta um item a uma lista sem reescrever o resto. Duas pessoas
   // anotando no mesmo frete ao mesmo tempo não apagam a nota da outra.
   arrayUnion,
+  arrayRemove,
 }
 
 /**

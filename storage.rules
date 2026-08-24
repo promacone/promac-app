@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// Regras do espaço de arquivos (canhotos e fotos de entrega).
+//
+// Mesma ideia das regras do Firestore: quem manda é o servidor, não o
+// aplicativo. Um link de download do Firebase é longo e difícil de
+// adivinhar, mas "difícil de adivinhar" não é proteção — sem estas
+// regras, qualquer pessoa com o endereço do projeto poderia listar e
+// baixar todos os canhotos da empresa.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Só entra quem está na lista `equipe` do Firestore e já foi liberado.
+    // A checagem é a mesma da base de dados, para não existirem dois
+    // conceitos diferentes de "quem trabalha aqui".
+    function autorizado() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/equipe/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/equipe/$(request.auth.uid)).data.liberado == true;
+    }
+
+    match /viagens/{freteId}/{arquivo} {
+      allow read: if autorizado();
+
+      // 12 MB é o teto do app; repetir aqui evita que alguém contorne a
+      // tela e encha o espaço com um vídeo.
+      allow write: if autorizado()
+        && request.resource.size < 12 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*')
+            || request.resource.contentType == 'application/pdf');
+
+      allow delete: if autorizado();
+    }
+
+    // Nada fora de /viagens.
+    match /{caminho=**} {
+      allow read, write: if false;
+    }
+  }
+}
