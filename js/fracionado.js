@@ -40,17 +40,18 @@ export const CUBAGEM_KG_POR_M3 = 300
  * cliente esperto descobriria isso rápido.
  */
 export const FAIXAS_PADRAO = [
-  { ate: 0.10, fator: 1.35 },
-  { ate: 0.30, fator: 1.05 },
-  { ate: 0.60, fator: 0.92 },
-  { ate: 1.00, fator: 0.85 },
+  { ate: 0.075, fator: 2.65 },
+  { ate: 0.215, fator: 1.80 },
+  { ate: 0.36, fator: 1.62 },
+  { ate: 1.00, fator: 1.45 },
 ]
-// Calibragem de 2026-08-24, depois dos testes do Pedro ("pequena muito
-// barata, média e grande muito caras"): o embarque alto é quem carrega a
-// carga pequena, então os fatores puderam descer. As duas faixas de cima
-// ficam abaixo de 1 de propósito — carga grande de fracionado viaja em
-// carreta compartilhada, mais barata por quilo que o truck de
-// referência, e cobrar o rateio cheio do truck a deixava sem cliente.
+// Curva ajustada aos preços reais do Pedro (2026-08-24), rota Ponta
+// Grossa -> São Paulo: 100 kg = 1.100 / 300 kg = 1.290 / 1 t = 1.980 /
+// 3 t = 2.980 / 5 t = 3.980. Não é palpite de mercado: os fatores foram
+// resolvidos para o motor reproduzir esses cinco pontos com o embarque
+// de R$ 1.000. A cabeça do Pedro é quase linear — ~R$ 1.000 de base
+// mais ~R$ 0,95/kg até 1 t, e ~R$ 0,50/kg dali em diante — e é isso que
+// estas faixas desenham por cima da ocupação do truck.
 
 /** O fator na ocupação dada, interpolando entre as faixas. */
 export function fatorDeOcupacao(ocupacao, faixas = FAIXAS_PADRAO) {
@@ -85,10 +86,13 @@ export const REGIOES = [
       posicoes: 14,
       bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
     },
-    embarque: 150,
+    // O embarque de R$ 1.000 veio dos números do Pedro: qualquer carga
+    // PG -> SP começa em torno de R$ 1.100. É a parcela que a carga
+    // pequena paga pela viagem existir.
+    embarque: 1000,
     faixas: FAIXAS_PADRAO,
     distanciaKm: 600,
-    minimo: 150,
+    minimo: 1000,
     motorCompleto: true,
   },
   {
