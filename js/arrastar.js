@@ -11,6 +11,7 @@
 const ESPERA_TOQUE = 260   // ms segurando antes de o cartão soltar
 const TOLERANCIA_TOQUE = 12 // px de folga antes de virar rolagem
 const TOLERANCIA_MOUSE = 4  // px para diferenciar clique de arrasto
+const LIMITE_CLIQUE = 10    // px de folga para o ponteiro ainda contar como clique
 const BORDA_ROLAGEM = 70    // px da borda onde o quadro rola sozinho
 
 let arrastando = null
@@ -73,9 +74,23 @@ export function tornarArrastavel(cartao, dados, { aoSoltar, aoClicar }) {
         return
       }
 
+      const distancia = Math.hypot(e.clientX - inicio.x, e.clientY - inicio.y)
       const coluna = colunaSob(e.clientX, e.clientY)
       encerrar(true)
-      if (coluna && coluna !== dados.estagio) aoSoltar(dados, coluna)
+
+      if (coluna && coluna !== dados.estagio) {
+        aoSoltar(dados, coluna)
+        return
+      }
+
+      // Soltou praticamente onde pegou: era clique, não arrasto.
+      //
+      // A mão treme uns poucos pixels em todo clique, e no dedo o toque
+      // costuma passar dos 260 ms de espera. Nos dois casos o arrasto
+      // começava, terminava na mesma coluna e o clique se perdia — o
+      // cartão simplesmente não abria, e sem abrir não dava para editar
+      // nem apagar.
+      if (distancia <= LIMITE_CLIQUE && aoClicar) aoClicar()
     }
 
     const encerrar = (houveArrasto) => {

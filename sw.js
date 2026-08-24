@@ -8,7 +8,7 @@
 // sem sinal, entrega a última que funcionou. Assim o vendedor no meio da
 // estrada ainda abre o app e cota um frete, mesmo sem 4G.
 
-const CACHE = 'promac-20260824131734'
+const CACHE = 'promac-20260824132726'
 
 // O que vale a pena guardar para funcionar offline.
 const ESSENCIAIS = [
@@ -42,6 +42,29 @@ self.addEventListener('activate', (evento) => {
   )
 })
 
+/**
+ * Busca na rede de verdade quando o endereço não tem carimbo de versão.
+ *
+ * O GitHub Pages manda o navegador guardar o index.html por 10 minutos
+ * (`cache-control: max-age=600`). Nesse intervalo o navegador nem pergunta
+ * ao servidor: entrega a cópia velha — inclusive para este service worker.
+ * E como é justamente o index.html que carrega os carimbos de versão de
+ * todo o resto, uma publicação parecia "não ter subido" mesmo já estando
+ * no ar.
+ *
+ * Arquivos carimbados (`?v=...`) não têm esse risco: um endereço novo
+ * nunca está no cache. Esses continuam sendo buscados normalmente, que é
+ * mais rápido.
+ */
+function buscarNaRede(pedido, endereco) {
+  if (endereco.searchParams.has('v')) return fetch(pedido)
+
+  return fetch(pedido.url, { cache: 'reload', credentials: 'same-origin' })
+    // Se o navegador recusar a opção, ainda é melhor buscar do jeito
+    // antigo do que deixar a tela em branco.
+    .catch(() => fetch(pedido))
+}
+
 self.addEventListener('fetch', (evento) => {
   const pedido = evento.request
 
@@ -54,7 +77,7 @@ self.addEventListener('fetch', (evento) => {
   if (endereco.origin !== self.location.origin) return
 
   evento.respondWith(
-    fetch(pedido)
+    buscarNaRede(pedido, endereco)
       .then((resposta) => {
         // Guarda uma cópia para quando faltar sinal.
         if (resposta.ok) {

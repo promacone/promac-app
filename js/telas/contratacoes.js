@@ -5,10 +5,10 @@
 
 import {
   bd, doc, setDoc, deleteDoc, collection, getDocs,
-} from '../firebase.js?v=20260824131734'
-import { reais } from '../frete.js?v=20260824131734'
-import { el, render, campo, mostrarAviso, seletor } from '../ui.js?v=20260824131734'
-import { tornarArrastavel } from '../arrastar.js?v=20260824131734'
+} from '../firebase.js?v=20260824132726'
+import { reais } from '../frete.js?v=20260824132726'
+import { el, render, campo, mostrarAviso, seletor } from '../ui.js?v=20260824132726'
+import { tornarArrastavel } from '../arrastar.js?v=20260824132726'
 
 /** Os fretes de verdade, no Firestore. */
 export function firestore() {
@@ -215,6 +215,17 @@ export function telaContratacoes(sessao, repositorio = firestore()) {
               texto: frete.prioridade === 'urgente' ? 'URGENTE' : 'PRIORITÁRIA',
             })
           : null,
+        // Apagar sem precisar abrir a ficha inteira. Discreto e com
+        // pergunta antes: no celular ele fica a um dedo de distância dos
+        // botões de mover.
+        el('button', {
+          classe: 'ficha__apagar',
+          type: 'button',
+          title: 'Apagar este frete',
+          'aria-label': 'Apagar este frete',
+          texto: '×',
+          onclick: (e) => { e.stopPropagation(); confirmarApagar(frete) },
+        }),
       ]),
 
       el('div', { classe: 'ficha__rota' }, [
@@ -277,6 +288,21 @@ export function telaContratacoes(sessao, repositorio = firestore()) {
     })
 
     return ficha
+  }
+
+  /**
+   * Pergunta e apaga.
+   *
+   * Apagar um frete não tem desfazer, então a pergunta traz o nome do
+   * cliente — no quadro cheio é fácil clicar no cartão de baixo.
+   *
+   * @returns true se apagou.
+   */
+  async function confirmarApagar(frete) {
+    const nome = frete.cliente || 'sem cliente'
+    if (!confirm(`Apagar o frete de ${nome}? Isso não pode ser desfeito.`)) return false
+    await apagar(frete.id)
+    return true
   }
 
   // ---------- Formulário ----------
@@ -390,10 +416,8 @@ export function telaContratacoes(sessao, repositorio = firestore()) {
         classe: 'botao botao-perigo',
         texto: 'Apagar frete',
         onclick: async () => {
-          if (confirm(`Apagar o frete de ${frete.cliente || 'sem cliente'}? Isso não pode ser desfeito.`)) {
-            await apagar(frete.id)
-            fechar()
-          }
+          const foi = await confirmarApagar(frete)
+          if (foi) fechar()
         },
       }),
     ]))

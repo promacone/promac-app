@@ -45,6 +45,11 @@ def carimbar_html(caminho: pathlib.Path) -> None:
 
 
 def main() -> int:
+    # `--ensaio` carimba sem enviar: serve para testar a versão nova aqui
+    # antes de ela chegar na equipe.
+    ensaio = '--ensaio' in sys.argv
+    argumentos = [a for a in sys.argv[1:] if a != '--ensaio']
+
     mudados = 0
     for js in sorted(RAIZ.glob('js/**/*.js')):
         if carimbar_js(js):
@@ -61,7 +66,11 @@ def main() -> int:
 
     print(f'versão {VERSAO} — {mudados} módulo(s) carimbado(s)')
 
-    mensagem = sys.argv[1] if len(sys.argv) > 1 else f'Publicar versão {VERSAO}'
+    if ensaio:
+        print('ensaio: nada foi enviado')
+        return 0
+
+    mensagem = argumentos[0] if argumentos else f'Publicar versão {VERSAO}'
     subprocess.run(['git', 'add', '-A'], cwd=RAIZ, check=True)
 
     resultado = subprocess.run(['git', 'commit', '-q', '-m', mensagem], cwd=RAIZ)

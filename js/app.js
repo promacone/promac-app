@@ -9,19 +9,33 @@ import {
   auth, onAuthStateChanged, signInWithEmailAndPassword,
   createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
   updateProfile, mensagemDeErro, lembrarNesteAparelho,
-} from './firebase.js?v=20260824131734'
-import { buscarMembro, marcarQueEntrou, carregarParametros } from './equipe.js?v=20260824131734'
-import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260824131734'
-import { telaCotacao } from './telas/cotacao.js?v=20260824131734'
-import { telaContratacoes } from './telas/contratacoes.js?v=20260824131734'
-import { telaEquipe } from './telas/equipe.js?v=20260824131734'
-import { telaConfiguracoes } from './telas/configuracoes.js?v=20260824131734'
-import { telaConta } from './telas/conta.js?v=20260824131734'
-import { telaInicio } from './telas/inicio.js?v=20260824131734'
+} from './firebase.js?v=20260824132726'
+import { buscarMembro, marcarQueEntrou, carregarParametros } from './equipe.js?v=20260824132726'
+import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260824132726'
+import { telaCotacao } from './telas/cotacao.js?v=20260824132726'
+import { telaContratacoes } from './telas/contratacoes.js?v=20260824132726'
+import { telaEquipe } from './telas/equipe.js?v=20260824132726'
+import { telaConfiguracoes } from './telas/configuracoes.js?v=20260824132726'
+import { telaConta } from './telas/conta.js?v=20260824132726'
+import { telaInicio } from './telas/inicio.js?v=20260824132726'
 
 // Guarda o app para funcionar sem sinal e evita que o celular fique com
 // telas antigas depois de uma atualização.
 if ('serviceWorker' in navigator) {
+  // Quem já estava sendo controlado é quem tinha a versão antiga. Na
+  // primeira visita o controle também muda, e aí recarregar seria só um
+  // piscar sem motivo.
+  const jaTinhaVersao = !!navigator.serviceWorker.controller
+  let recarregando = false
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!jaTinhaVersao || recarregando) return
+    recarregando = true
+    // A versão nova assumiu: recarrega uma vez sozinho, para ninguém
+    // precisar saber o que é "limpar o cache".
+    location.reload()
+  })
+
   addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {})
   })

@@ -904,3 +904,35 @@ body.arrastando .ficha { cursor: grabbing; }
   /* A conta fica sozinha na última linha, separada do trabalho do dia. */
   .inicio__modulos .modulo:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
+
+/* Apagar direto do cartão.
+   Discreto até chegar perto: no quadro cheio, um "x" vermelho em cada
+   ficha viraria um campo minado. Pergunta antes de apagar. */
+.ficha__apagar {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin: -3px -3px 0 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #b3bbcc;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--transicao), color var(--transicao);
+}
+
+.ficha__apagar:hover,
+.ficha__apagar:focus-visible {
+  background: rgba(217, 54, 54, 0.12);
+  color: #d93636;
+}
+
+/* No dedo não existe passar o mouse por cima, então ele já fica visível
+   o bastante para ser encontrado. */
+@media (hover: none) {
+  .ficha__apagar { color: #97a1b5; }
+}
