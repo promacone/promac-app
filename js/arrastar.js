@@ -79,21 +79,37 @@ export function tornarArrastavel(cartao, dados, { aoSoltar, aoClicar }) {
     }
 
     const encerrar = (houveArrasto) => {
-      clearTimeout(cronometro)
-      document.removeEventListener('pointermove', aoMover, { capture: true })
-      document.removeEventListener('pointerup', aoSoltarPonteiro)
-      document.removeEventListener('pointercancel', cancelar)
+      encerrarEscutas()
       if (houveArrasto || ativo) finalizarArrasto()
       ativo = false
     }
 
-    const cancelar = () => encerrar(true)
+    const cancelar = () => {
+      // O navegador cancela o ponteiro quando resolve rolar. Se o arrasto
+      // já tinha começado, isso não deveria acontecer — mas se acontecer,
+      // devolvemos o cartão ao lugar em vez de deixá-lo preso no ar.
+      encerrar(true)
+    }
 
-    // capture e passive:false para conseguir bloquear a rolagem quando o
-    // arrasto começar.
+    // No iOS, quem manda na rolagem é o touchmove, não o pointermove:
+    // bloquear só o pointermove deixa a página rolar por baixo do arrasto.
+    // Como o gesto só começa depois de o dedo ficar parado, a rolagem
+    // ainda não arrancou quando chega o primeiro touchmove — e aí dá para
+    // barrá-la.
+    const barrarRolagem = (e) => { if (ativo) e.preventDefault() }
+
+    const encerrarEscutas = () => {
+      clearTimeout(cronometro)
+      document.removeEventListener('pointermove', aoMover, { capture: true })
+      document.removeEventListener('pointerup', aoSoltarPonteiro)
+      document.removeEventListener('pointercancel', cancelar)
+      document.removeEventListener('touchmove', barrarRolagem, { capture: true })
+    }
+
     document.addEventListener('pointermove', aoMover, { capture: true, passive: false })
     document.addEventListener('pointerup', aoSoltarPonteiro)
     document.addEventListener('pointercancel', cancelar)
+    document.addEventListener('touchmove', barrarRolagem, { capture: true, passive: false })
   })
 }
 

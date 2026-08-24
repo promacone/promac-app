@@ -5,9 +5,9 @@
 // respondem à pergunta que a operação faz primeiro toda manhã — quantas
 // cargas estão rodando e quanto delas está atrasado.
 
-import { bd, collection, getDocs } from '../firebase.js'
-import { reais } from '../frete.js'
-import { el, render, icone } from '../ui.js'
+import { bd, collection, getDocs } from '../firebase.js?v=20260824091453'
+import { reais } from '../frete.js?v=20260824091453'
+import { el, render, icone } from '../ui.js?v=20260824091453'
 
 export function telaInicio({ sessao, modulos, aoEscolher, aoSair, aoAbrirConta }) {
   const areaResumo = el('div', { classe: 'inicio__resumo' })

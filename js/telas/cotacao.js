@@ -3,10 +3,10 @@
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js'
-import { rotaComMemoria } from '../qualp.js'
-import { campoDeCidade } from '../cidades.js'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js'
+} from '../frete.js?v=20260824091453'
+import { rotaComMemoria } from '../qualp.js?v=20260824091453'
+import { campoDeCidade } from '../cidades.js?v=20260824091453'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260824091453'
 
 export function telaCotacao({ parametros }) {
   const estado = {
