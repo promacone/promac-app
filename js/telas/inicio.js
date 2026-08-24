@@ -5,9 +5,9 @@
 // respondem à pergunta que a operação faz primeiro toda manhã — quantas
 // cargas estão rodando e quanto delas está atrasado.
 
-import { bd, collection, getDocs } from '../firebase.js?v=20260824092938'
-import { reais } from '../frete.js?v=20260824092938'
-import { el, render, icone } from '../ui.js?v=20260824092938'
+import { bd, collection, getDocs } from '../firebase.js?v=20260824095009'
+import { reais } from '../frete.js?v=20260824095009'
+import { el, render, icone } from '../ui.js?v=20260824095009'
 
 export function telaInicio({ sessao, modulos, aoEscolher, aoSair, aoAbrirConta }) {
   const areaResumo = el('div', { classe: 'inicio__resumo' })
@@ -25,7 +25,7 @@ export function telaInicio({ sessao, modulos, aoEscolher, aoSair, aoAbrirConta }
     ]),
 
     el('div', { classe: 'inicio__marca' }, [
-      el('img', { classe: 'inicio__logo', src: 'icones/logo-clara.png', alt: 'PROMAC Transportes' }),
+      el('img', { classe: 'inicio__logo', src: 'icones/logo-clara.png?v=20260824095009', alt: 'PROMAC Transportes' }),
       el('p', { classe: 'inicio__chamada', texto: 'Selecione o módulo que deseja acessar' }),
     ]),
 

@@ -3,10 +3,10 @@
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js?v=20260824092938'
-import { rotaComMemoria } from '../qualp.js?v=20260824092938'
-import { campoDeCidade } from '../cidades.js?v=20260824092938'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260824092938'
+} from '../frete.js?v=20260824095009'
+import { rotaComMemoria } from '../qualp.js?v=20260824095009'
+import { campoDeCidade } from '../cidades.js?v=20260824095009'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260824095009'
 
 export function telaCotacao({ parametros }) {
   const estado = {
@@ -28,7 +28,7 @@ export function telaCotacao({ parametros }) {
   // Redesenhar os campos de digitação a cada tecla faria o teclado do
   // iPhone fechar no meio da palavra.
   const areaEixos = el('div')
-  const areaTabelas = el('div', { style: 'display:flex;gap:8px' })
+  const areaTabelas = el('div', { classe: 'tabelas-preco' })
   const areaResumo = el('div')
   const areaTotal = el('div')
   const areaRota = el('div')
@@ -93,14 +93,12 @@ export function telaCotacao({ parametros }) {
 
     render(areaTotal,
       el('div', { classe: 'total' }, [
-        el('div', {}, [
-          el('div', { classe: 'total__rotulo', texto: 'Total ao cliente' }),
-          el('div', {
-            classe: 'total__secundario',
-            texto: `Sem o pedágio: ${reais(r.total)}`,
-          }),
-        ]),
-        el('span', { classe: 'total__valor', texto: reais(r.totalComPedagio) }),
+        el('div', { classe: 'total__rotulo', texto: 'Total ao cliente' }),
+        el('div', { classe: 'total__valor', texto: reais(r.totalComPedagio) }),
+        el('div', {
+          classe: 'total__secundario',
+          texto: `Sem o pedágio: ${reais(r.total)}`,
+        }),
       ]),
     )
   }
@@ -190,14 +188,15 @@ export function telaCotacao({ parametros }) {
 
   function redesenharTabelas() {
     render(areaTabelas, Object.entries(parametros.tabelas).map(([id, margem]) =>
+      // Letra em cima, percentual embaixo: escrito em linha única, "A —
+      // 20%" quebrava no meio do travessão na largura do celular.
       el('button', {
-        classe: 'botao',
-        style: estado.tabela === id
-          ? ''
-          : 'background:transparent;color:var(--azul-claro);border:1.5px solid var(--azul-claro)',
-        texto: `${id.toUpperCase()} — ${percentual(margem)}`,
+        classe: `tabela-preco${estado.tabela === id ? ' tabela-preco--ativa' : ''}`,
         onclick: () => { estado.tabela = id; redesenharTabelas(); recalcular() },
-      })))
+      }, [
+        el('span', { classe: 'tabela-preco__letra', texto: id.toUpperCase() }),
+        el('span', { classe: 'tabela-preco__margem', texto: percentual(margem) }),
+      ])))
   }
 
   function campoNumerico(nome, placeholder, aoDigitar) {

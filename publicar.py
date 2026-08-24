@@ -22,14 +22,17 @@ VERSAO = time.strftime('%Y%m%d%H%M%S')
 
 # `from './x.js'`, `from '../y/z.js'` e `import('./w.js')`
 IMPORTE = re.compile(r"""(from\s+|import\()(['"])(\.\.?/[^'"]+?\.js)(\?v=[^'"]*)?(['"])""")
-RECURSO = re.compile(r"""((?:href|src)=")([^"]+?\.(?:css|js))(\?v=[^"]*)?(")""")
+RECURSO = re.compile(r"""((?:href|src)=")([^"]+?\.(?:css|js|png))(\?v=[^"]*)?(")""")
 BUSCA_JSON = re.compile(r"""(fetch\(['"])([^'"]+?\.json)(\?v=[^'"]*)?(['"])""")
+# Imagens citadas dentro do código, como a logo da tela inicial.
+IMAGEM_JS = re.compile(r"""(src:\s*['"])([^'"]+?\.png)(\?v=[^'"]*)?(['"])""")
 
 
 def carimbar_js(caminho: pathlib.Path) -> bool:
     texto = caminho.read_text()
     novo = IMPORTE.sub(rf"\1\2\3?v={VERSAO}\5", texto)
     novo = BUSCA_JSON.sub(rf"\1\2?v={VERSAO}\4", novo)
+    novo = IMAGEM_JS.sub(rf"\1\2?v={VERSAO}\4", novo)
     if novo != texto:
         caminho.write_text(novo)
         return True

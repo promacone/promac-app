@@ -5,10 +5,27 @@
 
 import {
   bd, doc, setDoc, deleteDoc, collection, getDocs,
-} from '../firebase.js?v=20260824092938'
-import { reais } from '../frete.js?v=20260824092938'
-import { el, render, campo, mostrarAviso, seletor } from '../ui.js?v=20260824092938'
-import { tornarArrastavel } from '../arrastar.js?v=20260824092938'
+} from '../firebase.js?v=20260824095009'
+import { reais } from '../frete.js?v=20260824095009'
+import { el, render, campo, mostrarAviso, seletor } from '../ui.js?v=20260824095009'
+import { tornarArrastavel } from '../arrastar.js?v=20260824095009'
+
+/** Os fretes de verdade, no Firestore. */
+export function firestore() {
+  return {
+    async listar() {
+      const resultado = await getDocs(collection(bd, 'viagens'))
+      return resultado.docs.map((d) => ({ id: d.id, ...d.data() }))
+    },
+    async salvar(frete) {
+      const { id, ...campos } = frete
+      await setDoc(doc(bd, 'viagens', id), campos)
+    },
+    async apagar(id) {
+      await deleteDoc(doc(bd, 'viagens', id))
+    },
+  }
+}
 
 export const ESTAGIOS = [
   { id: 'coleta', titulo: 'Coleta', cor: '#737d8c' },
@@ -55,16 +72,20 @@ function movido(frete, destino) {
   return alterado
 }
 
-export function telaContratacoes(sessao) {
+/**
+ * @param sessao      quem está usando
+ * @param repositorio de onde vêm os fretes. Trocável para eu conseguir
+ *                    exercitar o quadro com dados falsos, sem depender de
+ *                    login nem gastar leitura do Firestore.
+ */
+export function telaContratacoes(sessao, repositorio = firestore()) {
   const estado = { fretes: [], busca: '', carregando: true }
   const raiz = el('div', { style: 'display:grid;gap:14px' })
   const avisoEl = el('div')
 
   async function carregar() {
     try {
-      const resultado = await getDocs(collection(bd, 'viagens'))
-      estado.fretes = resultado.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
+      estado.fretes = (await repositorio.listar())
         .sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0))
       mostrarAviso(avisoEl, '')
     } catch {
@@ -75,9 +96,8 @@ export function telaContratacoes(sessao) {
   }
 
   async function salvar(frete) {
-    const { id, ...campos } = frete
     try {
-      await setDoc(doc(bd, 'viagens', id), campos)
+      await repositorio.salvar(frete)
       await carregar()
     } catch {
       mostrarAviso(avisoEl, 'Não consegui salvar. Tente de novo.')
@@ -86,7 +106,7 @@ export function telaContratacoes(sessao) {
 
   async function apagar(id) {
     try {
-      await deleteDoc(doc(bd, 'viagens', id))
+      await repositorio.apagar(id)
       await carregar()
     } catch {
       mostrarAviso(avisoEl, 'Não consegui apagar. Tente de novo.')
@@ -115,18 +135,21 @@ export function telaContratacoes(sessao) {
         totalizador('Entregues', entregues, 'var(--verde)'),
       ]),
 
-      el('input', {
-        type: 'search',
-        placeholder: 'Buscar cliente, cidade, motorista ou placa',
-        value: estado.busca,
-        oninput: (e) => { estado.busca = e.target.value; desenharColunas() },
-      }),
-
-      el('button', {
-        classe: 'botao',
-        texto: '+ Novo frete',
-        onclick: () => abrirFormulario(null),
-      }),
+      // Busca e "novo frete" dividem a linha na tela grande: cada bloco
+      // empilhado aqui em cima é altura que o quadro perde.
+      el('div', { classe: 'quadro__barra' }, [
+        el('input', {
+          type: 'search',
+          placeholder: 'Buscar cliente, cidade, motorista ou placa',
+          value: estado.busca,
+          oninput: (e) => { estado.busca = e.target.value; desenharColunas() },
+        }),
+        el('button', {
+          classe: 'botao quadro__novo',
+          texto: '+ Novo frete',
+          onclick: () => abrirFormulario(null),
+        }),
+      ]),
 
       areaColunas,
     )

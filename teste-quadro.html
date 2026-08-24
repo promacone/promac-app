@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Teste do quadro — PROMAC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<!--
+  Página só para exercitar o quadro sem login e sem tocar no Firestore.
+  Existe porque o arrasto só falhava no quadro de verdade — réplicas
+  montadas à mão funcionavam, e isso escondia o problema.
+-->
+
+<div class="conteudo conteudo--largo" id="alvo"></div>
+
+<script type="module">
+// Carimbo novo a cada abertura, para o teste nunca rodar o módulo velho.
+const { telaContratacoes } = await import('./js/telas/contratacoes.js?t=' + Date.now())
+
+const fretes = [
+  {
+    id: '1', cliente: 'Ambev', cidadeColeta: 'São Paulo, SP',
+    cidadeEntrega: 'Curitiba, PR', estagio: 'coleta', valorFrete: 4915,
+    tipoVeiculo: 'Carreta', prioridade: 'urgente',
+    previsaoEntrega: Date.now() + 86400000, criadoEm: Date.now(),
+  },
+  {
+    id: '2', cliente: 'Gradisa', cidadeColeta: 'Ponta Grossa, PR',
+    cidadeEntrega: 'Belo Horizonte, MG', estagio: 'motoristaContratado',
+    valorFrete: 12030, tipoVeiculo: 'Truck', prioridade: 'normal',
+    motoristaNome: 'João da Silva', placa: 'ABC1D23',
+    motoristaTelefone: '(42) 99999-8888',
+    previsaoEntrega: Date.now() + 172800000, criadoEm: Date.now() - 1000,
+  },
+]
+
+const repositorio = {
+  async listar() { return fretes.map((f) => ({ ...f })) },
+  async salvar(frete) {
+    const i = fretes.findIndex((f) => f.id === frete.id)
+    if (i >= 0) fretes[i] = frete
+    else fretes.push(frete)
+    window.ultimoSalvo = frete
+  },
+  async apagar(id) {
+    const i = fretes.findIndex((f) => f.id === id)
+    if (i >= 0) fretes.splice(i, 1)
+  },
+}
+
+const sessao = {
+  usuario: { email: 'teste@promac.com.br', nome: 'Teste' },
+  membro: { papel: 'master' },
+  parametros: { imposto: 0.16, gris: 0.0025, tabelas: { a: 0.2, b: 0.16, c: 0.12 } },
+}
+
+document.querySelector('#alvo').append(telaContratacoes(sessao, repositorio))
+window.pronto = true
+</script>
+</body>
+</html>
