@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824163012'
+} from '../frete.js?v=20260824163257'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260824163012'
-import { rotaComMemoria } from '../qualp.js?v=20260824163012'
-import { campoDeCidade } from '../cidades.js?v=20260824163012'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824163012'
+} from '../fracionado.js?v=20260824163257'
+import { rotaComMemoria } from '../qualp.js?v=20260824163257'
+import { campoDeCidade } from '../cidades.js?v=20260824163257'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824163257'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -35,6 +35,22 @@ export function telaFreteFracionado({ parametros }) {
     return { quantidade: '1', comprimento: '', largura: '', altura: '', pesoKg: '' }
   }
 
+  /**
+   * Lê uma medida aceitando metros ou centímetros.
+   *
+   * Na prática ninguém digita "1,70": digita "170", porque é assim que
+   * se fala. Só que 170 lidos como metros viram uma carga do tamanho de
+   * um quarteirão — foi exatamente o erro que apareceu no primeiro uso.
+   *
+   * O corte em 20 é seguro: nenhum volume de carga passa de 20 m (a
+   * própria carreta tem 15), e ninguém descreve uma caixa como "0,20"
+   * digitando "20 metros".
+   */
+  function medidaEmMetros(valor) {
+    const n = numero(valor)
+    return n > 20 ? n / 100 : n
+  }
+
   /** Soma m³ e kg de todos os volumes digitados. */
   function totaisDaCarga() {
     let volumeM3 = 0
@@ -43,7 +59,7 @@ export function telaFreteFracionado({ parametros }) {
 
     for (const v of estado.volumes) {
       const qtd = Math.max(0, Math.round(numero(v.quantidade)))
-      const m3 = numero(v.comprimento) * numero(v.largura) * numero(v.altura)
+      const m3 = medidaEmMetros(v.comprimento) * medidaEmMetros(v.largura) * medidaEmMetros(v.altura)
       volumeM3 += m3 * qtd
       pesoKg += numero(v.pesoKg) * qtd
       quantidade += qtd
@@ -61,8 +77,8 @@ export function telaFreteFracionado({ parametros }) {
     const r = regiao(estado.regiao)
     const bau = capacidadeM3(r.caminhao)
     areaAjudaVolumes.textContent = bau
-      ? `Medidas em metros — 60 cm é 0,60. A carreta de referência leva ${r.caminhao.capacidadeKg / 1000} t em ${m3(bau)} m³ (${m3(r.caminhao.bau.comprimento)} × ${m3(r.caminhao.bau.largura)} × ${m3(r.caminhao.bau.altura)}). A carga paga a fração que ocupar — em peso ou em espaço, o que for maior.`
-      : `Medidas em metros — 60 cm é 0,60. Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`
+      ? `Digite em metros (1,20) ou em centímetros (120) — números acima de 20 são lidos como centímetros. A carreta de referência leva ${r.caminhao.capacidadeKg / 1000} t em ${m3(bau)} m³ (${m3(r.caminhao.bau.comprimento)} × ${m3(r.caminhao.bau.largura)} × ${m3(r.caminhao.bau.altura)}). A carga paga a fração que ocupar — em peso ou em espaço, o que for maior.`
+      : `Digite em metros (1,20) ou em centímetros (120) — números acima de 20 são lidos como centímetros. Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`
   }
   const areaTabelas = el('div', { classe: 'tabelas-preco' })
   const areaDestino = el('div')
@@ -128,6 +144,13 @@ export function telaFreteFracionado({ parametros }) {
       linha(`GRIS (${percentual(parametros.gris)} da NF-e)`, reais(r.gris)),
       linha('Taxas fixas', reais(r.taxas)),
 
+      r.fatia > 1
+        ? el('div', {
+            classe: 'aviso aviso--atencao',
+            texto: `Essa carga não cabe numa carreta só (${percentual(r.fatia)} da capacidade). O valor equivale a mais de um veículo — confira as medidas ou cote como dedicado.`,
+          })
+        : null,
+
       r.cobrouPorEspaco && (temBau ? r.fatiaEspaco > 0 : true)
         ? el('p', {
             classe: 'campo__ajuda',
@@ -189,9 +212,16 @@ export function telaFreteFracionado({ parametros }) {
 
     function atualizarSubtotal() {
       const qtd = Math.max(0, Math.round(numero(volume.quantidade)))
-      const cada = numero(volume.comprimento) * numero(volume.largura) * numero(volume.altura)
+      const c = medidaEmMetros(volume.comprimento)
+      const l = medidaEmMetros(volume.largura)
+      const a = medidaEmMetros(volume.altura)
+      const cada = c * l * a
       const kg = numero(volume.pesoKg) * qtd
-      subtotal.textContent = `${m3(cada * qtd)} m³ · ${Math.round(kg).toLocaleString('pt-BR')} kg`
+
+      // Mostrar as medidas já convertidas é o que avisa a pessoa de como
+      // o número foi entendido: quem digitou "170" vê "1,70" na hora.
+      const medidas = cada > 0 ? `${m3(c)} × ${m3(l)} × ${m3(a)} m — ` : ''
+      subtotal.textContent = `${medidas}${m3(cada * qtd)} m³ · ${Math.round(kg).toLocaleString('pt-BR')} kg`
     }
 
     /** Campo pequeno com rótulo em cima, para caber cinco por item. */
