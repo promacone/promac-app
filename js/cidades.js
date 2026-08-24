@@ -5,7 +5,7 @@
 // Paulo" sem acento ou um "Brasilia" digitado errado fazem a consulta de
 // rota falhar depois de já ter gasto um crédito da Qualp.
 
-import { el } from './ui.js?v=20260824143156'
+import { el } from './ui.js?v=20260824161714'
 
 let cidades = null
 let carregando = null
@@ -20,7 +20,7 @@ async function carregar() {
   if (cidades) return cidades
   if (carregando) return carregando
 
-  carregando = fetch('dados/cidades.json?v=20260824143156')
+  carregando = fetch('dados/cidades.json?v=20260824161714')
     .then((r) => r.json())
     .then((lista) => {
       cidades = lista.map(([nome, uf, busca]) => ({ nome, uf, busca }))
@@ -50,7 +50,7 @@ function normalizar(texto) {
  * Quem começa com o termo vem antes de quem só o contém: digitando "sao",
  * "São Paulo" deve aparecer antes de "Bom Jesus dos Perdões".
  */
-export function procurar(termo, limite = 8) {
+export function procurar(termo, limite = 8, apenasUFs = null) {
   const alvo = normalizar(termo)
   if (!cidades || alvo.length < 2) return []
 
@@ -65,6 +65,9 @@ export function procurar(termo, limite = 8) {
   const contem = []
 
   for (const cidade of cidades) {
+    // Restrição por região: a cotação fracionada só sugere destinos da
+    // aba escolhida, senão o vendedor cota Manaus com preço de Curitiba.
+    if (apenasUFs && !apenasUFs.includes(cidade.uf)) continue
     if (possivelUF && cidade.uf.toLowerCase() !== possivelUF) continue
 
     const posicao = cidade.busca.indexOf(nomeBuscado)
@@ -84,7 +87,7 @@ export function procurar(termo, limite = 8) {
  * ambiguidade. Cidades de mesmo nome em estados diferentes são comuns no
  * Brasil, e sem a UF a rota sai errada.
  */
-export function campoDeCidade({ valorInicial = '', placeholder, aoEscolher }) {
+export function campoDeCidade({ valorInicial = '', placeholder, aoEscolher, apenasUFs = null }) {
   const entrada = el('input', {
     type: 'text',
     placeholder,
@@ -139,7 +142,7 @@ export function campoDeCidade({ valorInicial = '', placeholder, aoEscolher }) {
 
   entrada.addEventListener('input', async () => {
     await carregar()
-    sugestoes = procurar(entrada.value)
+    sugestoes = procurar(entrada.value, 8, apenasUFs)
     selecionado = -1
     desenhar()
     if (aoEscolher) aoEscolher(entrada.value)
@@ -147,7 +150,7 @@ export function campoDeCidade({ valorInicial = '', placeholder, aoEscolher }) {
 
   entrada.addEventListener('focus', async () => {
     await carregar()
-    sugestoes = procurar(entrada.value)
+    sugestoes = procurar(entrada.value, 8, apenasUFs)
     desenhar()
   })
 

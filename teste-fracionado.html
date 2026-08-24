@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Teste do fracionado — PROMAC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="conteudo" id="alvo"></div>
+<script type="module">
+const v = '?t=' + Date.now()
+const { telaCotacao } = await import('./js/telas/cotacao.js' + v)
+
+const sessao = {
+  parametros: { imposto: 0.16, gris: 0.0025, tabelas: { a: 0.2, b: 0.16, c: 0.12 } },
+}
+
+document.querySelector('#alvo').append(telaCotacao(sessao))
+window.pronto = true
+</script>
+</body>
+</html>

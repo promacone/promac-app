@@ -1,14 +1,64 @@
 // Módulo de cotação de frete.
+//
+// São dois negócios diferentes debaixo do mesmo módulo, e por isso ficam
+// em abas separadas em vez de numa tela só:
+//
+// - **Dedicado**: o caminhão sai só com a carga do cliente. O preço nasce
+//   do piso da ANTT por quilômetro e por eixo.
+// - **Fracionado**: a carga divide o caminhão com outras. Não existe piso
+//   legal para isso; o preço sai da tabela comercial da PROMAC, que muda
+//   conforme a região de destino.
+//
+// Misturar os dois numa tela só levaria o vendedor a cotar fracionado com
+// a conta do dedicado — que dá um número muito maior e perde a venda.
 
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js?v=20260824143156'
-import { rotaComMemoria } from '../qualp.js?v=20260824143156'
-import { campoDeCidade } from '../cidades.js?v=20260824143156'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260824143156'
+} from '../frete.js?v=20260824161714'
+import { rotaComMemoria } from '../qualp.js?v=20260824161714'
+import { campoDeCidade } from '../cidades.js?v=20260824161714'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260824161714'
+import { telaFreteFracionado } from './fracionado.js?v=20260824161714'
 
-export function telaCotacao({ parametros }) {
+/** Escolhe entre as duas formas de cotar. */
+export function telaCotacao(sessao) {
+  const area = el('div')
+  let atual = 'dedicado'
+
+  const abas = el('div', { classe: 'abas' })
+
+  function trocar(qual) {
+    atual = qual
+    desenharAbas()
+    render(area, qual === 'dedicado'
+      ? telaFreteDedicado(sessao)
+      : telaFreteFracionado(sessao))
+  }
+
+  function desenharAbas() {
+    render(abas, [
+      { id: 'dedicado', titulo: 'Dedicado' },
+      { id: 'fracionado', titulo: 'Fracionado' },
+    ].map((aba) => el('button', {
+      classe: `aba${atual === aba.id ? ' aba--ativa' : ''}`,
+      texto: aba.titulo,
+      onclick: () => trocar(aba.id),
+    })))
+  }
+
+  const raiz = el('div', { style: 'display:grid;gap:14px' }, [abas, area])
+  trocar('dedicado')
+  return raiz
+}
+
+/**
+ * Cotação de frete dedicado: um caminhão inteiro para uma carga só.
+ *
+ * O preço parte do piso da ANTT, que é o mínimo legal a pagar ao
+ * motorista terceiro, e sobe dali com imposto e margem.
+ */
+export function telaFreteDedicado({ parametros }) {
   const estado = {
     tipo: 'geral',
     eixos: 5,

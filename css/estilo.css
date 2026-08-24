@@ -1202,3 +1202,33 @@ body.arrastando .ficha { cursor: grabbing; }
 /* No escuro o "x" do cartão claro ficaria invisível. */
 .anexo .ficha__apagar { color: var(--texto-fraco); }
 .anexo .ficha__apagar:hover { color: #ff6b6b; background: rgba(217, 54, 54, 0.14); }
+
+/* ---------- Abas Dedicado / Fracionado ---------- */
+
+.abas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+}
+
+.aba {
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--texto-medio);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transicao), color var(--transicao);
+}
+
+.aba--ativa {
+  background: linear-gradient(135deg, var(--azul-vivo), var(--azul));
+  color: #04121e;
+  box-shadow: 0 4px 14px rgba(34, 166, 232, 0.25);
+}
