@@ -36,13 +36,18 @@ export const REGIOES = [
     titulo: 'Sul e Sudeste',
     sigla: 'S/SE',
     ufs: ['PR', 'SC', 'RS', 'SP', 'RJ', 'MG', 'ES'],
-    // O baú é o da carreta que a PROMAC contrata: 15 m de comprimento,
-    // 2,40 de largura, 2,80 de altura — 100,8 m³ para 25 toneladas.
-    // Com o baú declarado, a fatia da carga é medida contra o espaço
-    // real, não contra a cubagem genérica de 300 kg/m³.
+    // A referência do rateio é o truck de 14 t, não a carreta.
+    //
+    // Foi calibragem na prática: com a carreta, a carga pequena saía
+    // barata demais (fatia minúscula de um veículo barato por quilo) e a
+    // grande, cara demais. O truck é mais caro por quilo — o que sobe o
+    // preço das cargas pequenas — e o teto vira o preço do truck
+    // dedicado, mais baixo, o que segura as grandes.
+    //
+    // Baú do truck: 8,50 × 2,40 × 2,80 = 57,1 m³ para 14 toneladas.
     caminhao: {
-      tipo: 'geral', eixos: 5, capacidadeKg: 25000,
-      bau: { comprimento: 15, largura: 2.4, altura: 2.8 },
+      nome: 'Truck', tipo: 'geral', eixos: 3, capacidadeKg: 14000,
+      bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
     },
     // O rateio seco supõe a carreta 100% cheia e de graça para operar.
     // O fracionado real tem coleta, manuseio no terminal e espaço que

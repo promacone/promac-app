@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824164049'
+} from '../frete.js?v=20260824164730'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260824164049'
-import { rotaComMemoria } from '../qualp.js?v=20260824164049'
-import { campoDeCidade } from '../cidades.js?v=20260824164049'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824164049'
+} from '../fracionado.js?v=20260824164730'
+import { rotaComMemoria } from '../qualp.js?v=20260824164730'
+import { campoDeCidade } from '../cidades.js?v=20260824164730'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824164730'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -83,7 +83,7 @@ export function telaFreteFracionado({ parametros }) {
     const r = regiao(estado.regiao)
     const bau = capacidadeM3(r.caminhao)
     areaAjudaVolumes.textContent = bau
-      ? `Medidas em metros: 1,80 é um metro e oitenta; 0,80 é oitenta centímetros (180 também vale — números grandes são lidos como centímetros). A carreta de referência leva ${r.caminhao.capacidadeKg / 1000} t em ${m3(bau)} m³ (15 × 2,40 × 2,80 m). A carga paga a fração que ocupar — em peso ou em espaço, o que for maior.`
+      ? `Medidas em metros: 1,80 é um metro e oitenta; 0,80 é oitenta centímetros (180 também vale — números grandes são lidos como centímetros). O ${(r.caminhao.nome || 'veículo').toLowerCase()} de referência leva ${r.caminhao.capacidadeKg / 1000} t em ${m3(bau)} m³ (${m3(r.caminhao.bau.comprimento)} × ${m3(r.caminhao.bau.largura)} × ${m3(r.caminhao.bau.altura)} m). A carga paga a fração que ocupar — em peso ou em espaço, o que for maior.`
       : `Medidas em metros: 1,80 é um metro e oitenta; 0,80 é oitenta centímetros (180 também vale — números grandes são lidos como centímetros). Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`
   }
   const areaTabelas = el('div', { classe: 'tabelas-preco' })
@@ -99,6 +99,16 @@ export function telaFreteFracionado({ parametros }) {
     placeholder: 'Ex.: Ponta Grossa, PR',
     aoEscolher: (texto) => { estado.origem = texto; estado.rota = null; desenharRota() },
   })
+
+  /** "Truck cheio", "Carreta cheia" — o nome vem da região. */
+  function nomeDoVeiculo(r) {
+    return r.caminhao.nome || 'Carreta'
+  }
+
+  function veiculoCheio(r) {
+    const nome = nomeDoVeiculo(r)
+    return nome.endsWith('a') ? `${nome} cheia` : `${nome} cheio`
+  }
 
   function parametrosAtuais() {
     return {
@@ -134,17 +144,17 @@ export function telaFreteFracionado({ parametros }) {
       // Com o baú conhecido, o rateio é contra a carreta real: mostra a
       // ocupação nas duas dimensões e qual delas mandou no preço.
       temBau ? linha('Ocupação do baú (espaço)', percentual(r.fatiaEspaco), r.cobrouPorEspaco) : null,
-      temBau ? linha('Ocupação em peso (25 t)', percentual(r.fatiaPeso), !r.cobrouPorEspaco) : null,
+      temBau ? linha(`Ocupação em peso (${r.regiao.caminhao.capacidadeKg / 1000} t)`, percentual(r.fatiaPeso), !r.cobrouPorEspaco) : null,
 
       !temBau ? linha(`Peso cubado (${CUBAGEM_KG_POR_M3} kg/m³)`, `${Math.round(r.peso.cubado).toLocaleString('pt-BR')} kg`) : null,
       !temBau ? linha('Peso considerado', `${Math.round(r.peso.cobravel).toLocaleString('pt-BR')} kg`, r.peso.cubou) : null,
 
       linha(
         temBau
-          ? `Carreta cheia (${r.regiao.caminhao.capacidadeKg / 1000} t · ${m3(r.capacidadeM3)} m³ · ${r.distanciaKm} km)`
+          ? `${veiculoCheio(r.regiao)} (${r.regiao.caminhao.capacidadeKg / 1000} t · ${m3(r.capacidadeM3)} m³ · ${r.distanciaKm} km)`
           : `Caminhão cheio (${r.regiao.caminhao.capacidadeKg / 1000} t, ${r.distanciaKm} km)`,
         reais(r.freteCaminhaoCheio)),
-      linha('Valor por km da carreta', `${reais(r.valorPorKm)}/km`),
+      linha(`Valor por km (${nomeDoVeiculo(r.regiao).toLowerCase()})`, `${reais(r.valorPorKm)}/km`),
       linha('Fatia cobrada da carga', percentual(r.fatia)),
       r.fator > 1
         ? linha('Fator do fracionado', `× ${String(r.fator).replace('.', ',')}`)
@@ -156,14 +166,14 @@ export function telaFreteFracionado({ parametros }) {
       r.bateuNoTeto
         ? el('div', {
             classe: 'aviso aviso--atencao',
-            texto: 'Essa carga já paga o preço da carreta inteira — o valor foi travado nele. Vale oferecer o frete dedicado.',
+            texto: `Essa carga já paga o preço do ${nomeDoVeiculo(r.regiao).toLowerCase()} inteiro — o valor foi travado nele. Vale oferecer o frete dedicado.`,
           })
         : null,
 
       r.fatia > 1
         ? el('div', {
             classe: 'aviso aviso--atencao',
-            texto: `Essa carga não cabe numa carreta só (${percentual(r.fatia)} da capacidade). O valor equivale a mais de um veículo — confira as medidas ou cote como dedicado.`,
+            texto: `Essa carga não cabe num ${nomeDoVeiculo(r.regiao).toLowerCase()} só (${percentual(r.fatia)} da capacidade). Confira as medidas ou cote como dedicado.`,
           })
         : null,
 
