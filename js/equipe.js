@@ -122,7 +122,8 @@ export async function salvarParametros({ imposto, gris, tabelas }) {
   })
 }
 
-export const TABELAS_PADRAO = { a: 0.20, b: 0.16, c: 0.12 }
+/** Mesma lógica: as margens de verdade moram no Firestore. */
+export const TABELAS_PADRAO = { a: 0, b: 0, c: 0 }
 
 function numeroValido(valor, padrao) {
   return typeof valor === 'number' && Number.isFinite(valor) && valor >= 0

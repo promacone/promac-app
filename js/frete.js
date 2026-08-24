@@ -104,8 +104,16 @@ export function eixosDisponiveis(tipo) {
   return (TABELA_A[tipo] || []).map(([e]) => e)
 }
 
-/** Percentuais padrão, usados enquanto os da empresa não carregam. */
-export const PARAMETROS_PADRAO = { imposto: 0.16, margem: 0.20, gris: 0.0025 }
+/**
+ * Valores de partida, usados só enquanto os percentuais da empresa não
+ * chegam do Firestore.
+ *
+ * São zerados de propósito: os percentuais reais da PROMAC ficam no
+ * servidor, e num site o código é visível para qualquer um que abra a
+ * página. Se o carregamento falhar, o vendedor vê zero e percebe que
+ * algo está errado — melhor do que cotar com um número inventado.
+ */
+export const PARAMETROS_PADRAO = { imposto: 0, margem: 0, gris: 0 }
 
 /**
  * Monta o preço de um frete dedicado a partir do piso ANTT.
