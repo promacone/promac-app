@@ -18,7 +18,7 @@
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icones/icone-192.png">
-  <link rel="stylesheet" href="css/estilo.css">
+  <link rel="stylesheet" href="css/estilo.css?v=202608240840">
 </head>
 <body>
 
@@ -102,19 +102,20 @@
   </div>
 </div>
 
-<!-- ===================== Aplicativo ===================== -->
-<div id="tela-app" class="tela oculto">
+<!-- ===================== Tela inicial ===================== -->
+<div id="tela-inicio" class="oculto"></div>
+
+<!-- ===================== Módulo aberto ===================== -->
+<div id="tela-modulo" class="tela oculto">
   <header class="cabecalho">
-    <img class="cabecalho__logo" src="icones/logo.png" alt="PROMAC">
-    <span class="cabecalho__espaco"></span>
-    <span class="cabecalho__titulo" id="app-titulo">Cotação</span>
+    <button class="cabecalho__voltar" id="modulo-voltar">‹ Módulos</button>
+    <span class="cabecalho__titulo" id="modulo-titulo"></span>
+    <span class="cabecalho__equilibrio"></span>
   </header>
 
-  <main class="conteudo" id="app-conteudo"></main>
-
-  <nav class="abas" id="app-abas"></nav>
+  <main class="conteudo" id="modulo-conteudo"></main>
 </div>
 
-<script type="module" src="js/app.js"></script>
+<script type="module" src="js/app.js?v=202608240840"></script>
 </body>
 </html>

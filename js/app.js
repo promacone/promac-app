@@ -15,7 +15,17 @@ import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './u
 import { telaCotacao } from './telas/cotacao.js'
 import { telaContratacoes } from './telas/contratacoes.js'
 import { telaEquipe } from './telas/equipe.js'
+import { telaConfiguracoes } from './telas/configuracoes.js'
 import { telaConta } from './telas/conta.js'
+import { telaInicio } from './telas/inicio.js'
+
+// Guarda o app para funcionar sem sinal e evita que o celular fique com
+// telas antigas depois de uma atualização.
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {})
+  })
+}
 
 // Detecta se o app foi adicionado à tela de início do iPhone.
 if (window.navigator.standalone || matchMedia('(display-mode: standalone)').matches) {
@@ -27,7 +37,8 @@ const telas = {
   login: $('#tela-login'),
   cadastro: $('#tela-cadastro'),
   pendente: $('#tela-pendente'),
-  app: $('#tela-app'),
+  inicio: $('#tela-inicio'),
+  modulo: $('#tela-modulo'),
 }
 
 function mostrar(nome) {
@@ -174,41 +185,86 @@ $('#pendente-sair').addEventListener('click', () => signOut(auth))
 
 // ---------- Módulos ----------
 
-function abrirApp() {
-  const modulos = [
-    { id: 'cotacao', titulo: 'Cotação', icone: ICONES.cotacao, tela: () => telaCotacao(sessao) },
-    { id: 'contratacoes', titulo: 'Contratações', icone: ICONES.contratacoes, tela: () => telaContratacoes(sessao) },
-    // A aba Equipe só existe para quem administra — os colaboradores nem
-    // veem que ela existe. Quem garante de verdade são as regras do
-    // servidor; aqui é só a interface acompanhando.
-    ...(sessao.membro.papel === 'master'
-      ? [{ id: 'equipe', titulo: 'Equipe', icone: ICONES.equipe, tela: () => telaEquipe(sessao) }]
-      : []),
-    { id: 'conta', titulo: 'Conta', icone: ICONES.conta, tela: () => telaConta(sessao) },
+/**
+ * Cada módulo tem cor própria: no quadro e na tela inicial, é a cor que o
+ * operador reconhece antes de ler o nome.
+ */
+function modulosDisponiveis() {
+  const ehAdministrador = sessao.membro.papel === 'master'
+
+  return [
+    {
+      id: 'cotacao',
+      titulo: 'Cotação',
+      descricao: 'Piso ANTT, rota, pedágio e tabelas de preço',
+      icone: ICONES.cotacao,
+      cor: '#22a6e8',
+      tela: () => telaCotacao(sessao),
+    },
+    {
+      id: 'contratacoes',
+      titulo: 'Contratações',
+      descricao: 'Quadro das cargas, da coleta à entrega',
+      icone: ICONES.contratacoes,
+      cor: '#f2b317',
+      tela: () => telaContratacoes(sessao),
+    },
+    // Equipe só existe para quem administra — os colaboradores nem veem
+    // que ela existe. Quem garante de verdade são as regras do servidor;
+    // aqui é só a interface acompanhando.
+    ...(ehAdministrador ? [{
+      id: 'equipe',
+      titulo: 'Equipe',
+      descricao: 'Convidar, liberar e remover quem usa o app',
+      icone: ICONES.equipe,
+      cor: '#2bb673',
+      tela: () => telaEquipe(sessao),
+    }] : []),
+    {
+      id: 'configuracoes',
+      titulo: 'Ajustes',
+      descricao: 'Margens por tabela, imposto e GRIS',
+      icone: ICONES.configuracoes,
+      cor: '#8b7fe8',
+      tela: () => telaConfiguracoes(sessao),
+    },
+    {
+      id: 'conta',
+      titulo: 'Conta',
+      descricao: 'Seus dados, sair e apagar a conta',
+      icone: ICONES.conta,
+      cor: '#8b93a7',
+      tela: () => telaConta(sessao),
+    },
   ]
-
-  const abas = $('#app-abas')
-  const conteudo = $('#app-conteudo')
-  const titulo = $('#app-titulo')
-
-  function ativar(id) {
-    const modulo = modulos.find((m) => m.id === id) || modulos[0]
-    titulo.textContent = modulo.titulo
-    render(conteudo, modulo.tela())
-
-    for (const botao of abas.children) {
-      botao.classList.toggle('aba--ativa', botao.dataset.id === modulo.id)
-    }
-    conteudo.scrollTop = 0
-  }
-
-  render(abas, modulos.map((modulo) =>
-    el('button', {
-      classe: 'aba',
-      dataset: { id: modulo.id },
-      onclick: () => ativar(modulo.id),
-    }, [icone(modulo.icone), modulo.titulo])))
-
-  mostrar('app')
-  ativar('cotacao')
 }
+
+function abrirApp() {
+  mostrarInicio()
+}
+
+function mostrarInicio() {
+  const modulos = modulosDisponiveis()
+
+  render(telas.inicio, telaInicio({
+    sessao,
+    modulos,
+    aoEscolher: abrirModulo,
+    aoSair: () => signOut(auth),
+    aoAbrirConta: () => abrirModulo('conta'),
+  }))
+
+  mostrar('inicio')
+}
+
+function abrirModulo(id) {
+  const modulo = modulosDisponiveis().find((m) => m.id === id)
+  if (!modulo) return
+
+  $('#modulo-titulo').textContent = modulo.titulo
+  render($('#modulo-conteudo'), modulo.tela())
+  mostrar('modulo')
+  window.scrollTo(0, 0)
+}
+
+$('#modulo-voltar').addEventListener('click', mostrarInicio)

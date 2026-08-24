@@ -4,9 +4,7 @@
 import { auth, sendPasswordResetEmail, mensagemDeErro } from '../firebase.js'
 import {
   listarEquipe, convidar, definirAtivo, removerMembro, pareceEmail, chave,
-  salvarParametros,
 } from '../equipe.js'
-import { percentual } from '../frete.js'
 import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js'
 
 export function telaEquipe(sessao) {
@@ -188,66 +186,7 @@ export function telaEquipe(sessao) {
     }),
   ])
 
-  // ---------- Percentuais comerciais ----------
-
-  const percA = campoPercentual(sessao.parametros.tabelas.a)
-  const percB = campoPercentual(sessao.parametros.tabelas.b)
-  const percC = campoPercentual(sessao.parametros.tabelas.c)
-  const percImposto = campoPercentual(sessao.parametros.imposto)
-  const percGris = campoPercentual(sessao.parametros.gris, 4)
-  const avisoPercentuais = el('div')
-
-  function campoPercentual(fracao, casas = 2) {
-    return el('input', {
-      type: 'number', inputmode: 'decimal', step: 'any', min: '0', max: '99',
-      value: +(fracao * 100).toFixed(casas),
-    })
-  }
-
-  function lerPercentual(input) {
-    const valor = parseFloat(input.value)
-    return Number.isFinite(valor) && valor >= 0 && valor < 100 ? valor / 100 : null
-  }
-
-  const cartaoPercentuais = el('div', { classe: 'cartao' }, [
-    el('div', { classe: 'secao__titulo', texto: 'Percentuais da empresa' }),
-    campo('Margem da Tabela A (%)', percA),
-    campo('Margem da Tabela B (%)', percB),
-    campo('Margem da Tabela C (%)', percC),
-    campo('Imposto (%)', percImposto),
-    campo('GRIS sobre a NF-e (%)', percGris),
-    avisoPercentuais,
-    el('button', {
-      classe: 'botao',
-      texto: 'Salvar percentuais',
-      onclick: (e) => comCarregamento(e.target, async () => {
-        const tabelas = { a: lerPercentual(percA), b: lerPercentual(percB), c: lerPercentual(percC) }
-        const imposto = lerPercentual(percImposto)
-        const gris = lerPercentual(percGris)
-
-        if ([tabelas.a, tabelas.b, tabelas.c, imposto, gris].some((v) => v === null)) {
-          mostrarAviso(avisoPercentuais, 'Preencha todos os percentuais com números entre 0 e 99.')
-          return
-        }
-        // Imposto + margem precisam deixar sobrar algo para o custo.
-        const maiorMargem = Math.max(tabelas.a, tabelas.b, tabelas.c)
-        if (imposto + maiorMargem >= 1) {
-          mostrarAviso(avisoPercentuais, 'Imposto somado à maior margem precisa ficar abaixo de 100%.')
-          return
-        }
-
-        try {
-          await salvarParametros({ imposto, gris, tabelas })
-          Object.assign(sessao.parametros, { imposto, gris, tabelas })
-          mostrarAviso(avisoPercentuais, `Salvo. Tabelas: ${percentual(tabelas.a)} / ${percentual(tabelas.b)} / ${percentual(tabelas.c)}.`, 'ok')
-        } catch (erro) {
-          mostrarAviso(avisoPercentuais, mensagemDeErro(erro))
-        }
-      }),
-    }),
-  ])
-
-  render(raiz, avisoEl, cartaoConvite, areaLista, cartaoPercentuais)
+  render(raiz, avisoEl, cartaoConvite, areaLista)
   carregar()
   return raiz
 }
