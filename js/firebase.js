@@ -16,6 +16,7 @@ import {
   sendPasswordResetEmail,
   signOut,
   updateProfile,
+  updatePassword,
   deleteUser,
   reauthenticateWithCredential,
   EmailAuthProvider,
@@ -80,6 +81,38 @@ export function lembrarNesteAparelho(lembrar) {
  * principal, criar usuário trocaria a sessão — o administrador seria
  * desconectado e entraria como o próprio convidado.
  */
+export async function criarContaComSenha(email, senha) {
+  const paralelo = getApps().find((a) => a.name === 'convites')
+    || initializeApp(configuracao, 'convites')
+  const authParalelo = getAuth(paralelo)
+
+  try {
+    await createUserWithEmailAndPassword(authParalelo, email, senha)
+  } finally {
+    // A sessão paralela não pode sobreviver: ela está logada como a
+    // pessoa convidada, e o administrador continua na dele.
+    await signOut(authParalelo).catch(() => {})
+  }
+}
+
+/** Troca a senha de quem está logado. */
+export async function trocarSenha(novaSenha) {
+  if (!auth.currentUser) throw new Error('Ninguém conectado.')
+  await updatePassword(auth.currentUser, novaSenha)
+}
+
+/**
+ * Sorteia uma senha temporária legível.
+ *
+ * Vai ser digitada à mão por alguém no celular, então evita caracteres
+ * que se confundem: 0 e O, 1 e l, 5 e S.
+ */
+export function senhaTemporaria() {
+  const alfabeto = 'ABCDEFGHJKMNPQRTUVWXYZ346789'
+  const sorteio = crypto.getRandomValues(new Uint32Array(8))
+  return Array.from(sorteio, (n) => alfabeto[n % alfabeto.length]).join('')
+}
+
 export async function abrirAcessoParaConvidado(email) {
   const paralelo = getApps().find((a) => a.name === 'convites')
     || initializeApp(configuracao, 'convites')
@@ -110,6 +143,7 @@ export {
   sendPasswordResetEmail,
   signOut,
   updateProfile,
+  updatePassword,
   deleteUser,
   reauthenticateWithCredential,
   EmailAuthProvider,

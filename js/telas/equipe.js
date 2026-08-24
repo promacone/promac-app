@@ -1,11 +1,11 @@
 // Onde o administrador convida, desliga e apaga quem usa o app — e ajusta
 // os percentuais comerciais da empresa.
 
-import { auth, sendPasswordResetEmail, mensagemDeErro, abrirAcessoParaConvidado } from '../firebase.js?v=20260824092050'
+import { auth, sendPasswordResetEmail, mensagemDeErro, abrirAcessoParaConvidado } from '../firebase.js?v=20260824092938'
 import {
   listarEquipe, convidar, definirAtivo, removerMembro, pareceEmail, chave,
-} from '../equipe.js?v=20260824092050'
-import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824092050'
+} from '../equipe.js?v=20260824092938'
+import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824092938'
 
 export function telaEquipe(sessao) {
   const raiz = el('div', { style: 'display:grid;gap:14px' })
@@ -170,25 +170,105 @@ export function telaEquipe(sessao) {
           return
         }
 
-        // O acesso já está na lista. Se o e-mail falhar, o convite
-        // continua valendo: dá para reenviar tocando na pessoa, ou ela
-        // mesma se resolve por "Esqueci minha senha".
+        // A conta nasce com uma senha provisória entregue pelo
+        // administrador, e não por e-mail: os e-mails do Firebase caem no
+        // spam e o link de recuperação vale uma vez só — sistemas de
+        // segurança de e-mail costumam abri-lo antes da pessoa, queimando
+        // o uso. Pelo WhatsApp a mensagem chega e ninguém consome o
+        // acesso por engano.
+        const provisoria = senhaTemporaria()
+
         try {
-          await abrirAcessoParaConvidado(chave(email))
-          mostrarAviso(avisoConvite, `Convite enviado para ${email}.`, 'ok')
-        } catch {
-          mostrarAviso(
-            avisoConvite,
-            `Acesso liberado, mas o e-mail não saiu. Toque na pessoa na lista para reenviar.`,
-            'atencao'
-          )
+          await criarContaComSenha(chave(email), provisoria)
+        } catch (erro) {
+          if (erro?.code === 'auth/email-already-in-use') {
+            mostrarAviso(
+              avisoConvite,
+              `${email} já tinha conta. O acesso foi liberado — a pessoa entra com a senha que já usava.`,
+              'ok'
+            )
+            limpar()
+            return
+          }
+          mostrarAviso(avisoConvite, mensagemDeErro(erro))
+          return
         }
-        conviteEmail.value = ''
-        conviteNome.value = ''
+
+        mostrarSenhaProvisoria(email, provisoria)
+        limpar()
         carregar()
       }),
     }),
   ])
+
+  function limpar() {
+    conviteEmail.value = ''
+    conviteNome.value = ''
+    carregar()
+  }
+
+  /**
+   * Mostra a senha provisória para o administrador repassar.
+   *
+   * É a única vez que ela aparece: no primeiro acesso a pessoa troca por
+   * uma senha dela, e a partir daí ninguém mais sabe qual é.
+   */
+  function mostrarSenhaProvisoria(email, senha) {
+    const mensagem = [
+      'Seu acesso ao app da PROMAC está liberado.',
+      '',
+      `Link: ${location.origin}${location.pathname}`,
+      `E-mail: ${email}`,
+      `Senha provisória: ${senha}`,
+      '',
+      'No primeiro acesso o app pede para você criar sua própria senha.',
+    ].join('\n')
+
+    const fundo = el('div', {
+      classe: 'painel-fundo',
+      onclick: (e) => { if (e.target === fundo) fundo.remove() },
+    })
+
+    fundo.append(el('div', { classe: 'painel', onclick: (e) => e.stopPropagation() }, [
+      el('div', { classe: 'painel__topo' }, [
+        el('span', { classe: 'painel__titulo', texto: 'Acesso liberado' }),
+        el('button', { classe: 'botao-secundario', texto: 'Fechar', onclick: () => fundo.remove() }),
+      ]),
+
+      el('div', { classe: 'aviso aviso--atencao' }, [
+        el('strong', { texto: 'Anote ou copie agora. ' }),
+        'Esta senha não volta a aparecer — no primeiro acesso a pessoa troca por uma dela.',
+      ]),
+
+      el('div', { classe: 'cartao', style: 'display:grid;gap:6px' }, [
+        el('div', { classe: 'campo__ajuda', texto: 'E-mail' }),
+        el('div', { style: 'font-weight:600', texto: email }),
+        el('div', { classe: 'campo__ajuda', style: 'margin-top:8px', texto: 'Senha provisória' }),
+        el('div', {
+          style: 'font-size:26px;font-weight:800;letter-spacing:3px;font-family:ui-monospace,monospace;color:var(--azul-claro)',
+          texto: senha,
+        }),
+      ]),
+
+      el('button', {
+        classe: 'botao',
+        texto: 'Enviar pelo WhatsApp',
+        onclick: () => window.open(`https://wa.me/?text=${encodeURIComponent(mensagem)}`, '_blank'),
+      }),
+
+      el('button', {
+        classe: 'botao botao-contorno',
+        texto: 'Copiar mensagem',
+        onclick: (e) => {
+          navigator.clipboard.writeText(mensagem)
+            .then(() => { e.target.textContent = 'Copiado!' })
+            .catch(() => { e.target.textContent = 'Não consegui copiar' })
+        },
+      }),
+    ]))
+
+    document.body.append(fundo)
+  }
 
   render(raiz, avisoEl, cartaoConvite, areaLista)
   carregar()

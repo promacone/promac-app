@@ -9,15 +9,15 @@ import {
   auth, onAuthStateChanged, signInWithEmailAndPassword,
   createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
   updateProfile, mensagemDeErro, lembrarNesteAparelho,
-} from './firebase.js?v=20260824092050'
-import { buscarMembro, marcarQueEntrou, carregarParametros } from './equipe.js?v=20260824092050'
-import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260824092050'
-import { telaCotacao } from './telas/cotacao.js?v=20260824092050'
-import { telaContratacoes } from './telas/contratacoes.js?v=20260824092050'
-import { telaEquipe } from './telas/equipe.js?v=20260824092050'
-import { telaConfiguracoes } from './telas/configuracoes.js?v=20260824092050'
-import { telaConta } from './telas/conta.js?v=20260824092050'
-import { telaInicio } from './telas/inicio.js?v=20260824092050'
+} from './firebase.js?v=20260824092938'
+import { buscarMembro, marcarQueEntrou, carregarParametros } from './equipe.js?v=20260824092938'
+import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260824092938'
+import { telaCotacao } from './telas/cotacao.js?v=20260824092938'
+import { telaContratacoes } from './telas/contratacoes.js?v=20260824092938'
+import { telaEquipe } from './telas/equipe.js?v=20260824092938'
+import { telaConfiguracoes } from './telas/configuracoes.js?v=20260824092938'
+import { telaConta } from './telas/conta.js?v=20260824092938'
+import { telaInicio } from './telas/inicio.js?v=20260824092938'
 
 // Guarda o app para funcionar sem sinal e evita que o celular fique com
 // telas antigas depois de uma atualização.
@@ -37,6 +37,7 @@ const telas = {
   login: $('#tela-login'),
   cadastro: $('#tela-cadastro'),
   pendente: $('#tela-pendente'),
+  trocarSenha: $('#tela-trocar-senha'),
   inicio: $('#tela-inicio'),
   modulo: $('#tela-modulo'),
 }
@@ -85,6 +86,13 @@ async function conferirAutorizacao() {
   if (!sessao.membro || !sessao.membro.ativo) {
     $('#pendente-email').textContent = sessao.usuario.email
     mostrar('pendente')
+    return
+  }
+
+  // Entrou com a senha que o administrador entregou: precisa trocar antes
+  // de qualquer coisa, senão duas pessoas sabem a mesma senha.
+  if (sessao.membro.senhaTemporaria) {
+    mostrar('trocarSenha')
     return
   }
 
@@ -184,6 +192,40 @@ $('#form-cadastro').addEventListener('submit', async (evento) => {
 $('#pendente-conferir').addEventListener('click', (e) =>
   comCarregamento(e.target, conferirAutorizacao))
 $('#pendente-sair').addEventListener('click', () => signOut(auth))
+
+// ---------- Troca da senha provisória ----------
+
+$('#form-trocar-senha').addEventListener('submit', async (evento) => {
+  evento.preventDefault()
+  const avisoEl = $('#trocar-aviso')
+  mostrarAviso(avisoEl, '')
+
+  const senha = $('#nova-senha').value
+  const repetida = $('#nova-senha2').value
+
+  if (senha.length < 6) {
+    mostrarAviso(avisoEl, 'A senha precisa ter pelo menos 6 caracteres.')
+    return
+  }
+  if (senha !== repetida) {
+    mostrarAviso(avisoEl, 'As senhas não são iguais.')
+    return
+  }
+
+  const botao = evento.target.querySelector('button[type="submit"]')
+  await comCarregamento(botao, async () => {
+    try {
+      await trocarSenha(senha)
+      await marcarSenhaDefinida(sessao.usuario.email)
+      sessao.membro.senhaTemporaria = false
+      await conferirAutorizacao()
+    } catch (erro) {
+      mostrarAviso(avisoEl, mensagemDeErro(erro))
+    }
+  })
+})
+
+$('#trocar-sair').addEventListener('click', () => signOut(auth))
 
 // ---------- Módulos ----------
 

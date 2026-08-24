@@ -18,7 +18,7 @@
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icones/icone-192.png">
-  <link rel="stylesheet" href="css/estilo.css?v=20260824092050">
+  <link rel="stylesheet" href="css/estilo.css?v=20260824092938">
 </head>
 <body>
 
@@ -107,6 +107,33 @@
   </div>
 </div>
 
+<!-- ===================== Trocar senha provisória ===================== -->
+<div id="tela-trocar-senha" class="centralizado oculto">
+  <form class="login" id="form-trocar-senha">
+    <img class="login__logo" src="icones/logo-clara.png" alt="PROMAC Transportes">
+    <p class="login__subtitulo">Crie sua senha de acesso</p>
+
+    <div class="aviso aviso--atencao">
+      Você entrou com a senha provisória que recebeu. Escolha agora uma senha
+      só sua — ninguém mais vai saber qual é, nem quem te convidou.
+    </div>
+
+    <div class="login__campos">
+      <input type="password" id="nova-senha" placeholder="Nova senha (mínimo 6 caracteres)"
+             autocomplete="new-password" required>
+      <input type="password" id="nova-senha2" placeholder="Repita a nova senha"
+             autocomplete="new-password" required>
+    </div>
+
+    <div id="trocar-aviso"></div>
+
+    <button type="submit" class="botao">Salvar minha senha</button>
+    <div style="text-align:center">
+      <button type="button" class="botao-secundario" id="trocar-sair">Sair</button>
+    </div>
+  </form>
+</div>
+
 <!-- ===================== Tela inicial ===================== -->
 <div id="tela-inicio" class="oculto"></div>
 
@@ -121,6 +148,6 @@
   <main class="conteudo" id="modulo-conteudo"></main>
 </div>
 
-<script type="module" src="js/app.js?v=20260824092050"></script>
+<script type="module" src="js/app.js?v=20260824092938"></script>
 </body>
 </html>

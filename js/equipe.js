@@ -6,8 +6,8 @@
 import {
   bd, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs,
   serverTimestamp,
-} from './firebase.js?v=20260824092050'
-import { PARAMETROS_PADRAO } from './frete.js?v=20260824092050'
+} from './firebase.js?v=20260824092938'
+import { PARAMETROS_PADRAO } from './frete.js?v=20260824092938'
 
 /** Normaliza o e-mail: "Joao@" e "joao@" são a mesma pessoa. */
 export function chave(email) {
@@ -34,6 +34,7 @@ function converter(id, dados = {}) {
     ativo: dados.ativo === true,
     convidadoPor: dados.convidadoPor || null,
     jaEntrou: dados.jaEntrou === true,
+    senhaTemporaria: dados.senhaTemporaria === true,
   }
 }
 
@@ -64,6 +65,10 @@ export async function convidar({ email, nome, convidadoPor }) {
     convidadoEm: serverTimestamp(),
     // Vira verdadeiro no primeiro acesso da pessoa.
     jaEntrou: false,
+    // A senha entregue no convite é provisória: o app obriga a trocar no
+    // primeiro acesso, para que ninguém — nem o administrador que a
+    // enviou — continue sabendo a senha de outra pessoa.
+    senhaTemporaria: true,
   })
 }
 
@@ -73,6 +78,11 @@ export async function definirAtivo(email, ativo) {
 
 export async function removerMembro(email) {
   await deleteDoc(doc(bd, 'equipe', chave(email)))
+}
+
+/** Chamado quando a pessoa troca a senha provisória pela dela. */
+export async function marcarSenhaDefinida(email) {
+  await setDoc(doc(bd, 'equipe', chave(email)), { senhaTemporaria: false }, { merge: true })
 }
 
 export async function marcarQueEntrou(email, nome) {
