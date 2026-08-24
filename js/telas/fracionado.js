@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824161941'
+} from '../frete.js?v=20260824162354'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3,
-} from '../fracionado.js?v=20260824161941'
-import { rotaComMemoria } from '../qualp.js?v=20260824161941'
-import { campoDeCidade } from '../cidades.js?v=20260824161941'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824161941'
+} from '../fracionado.js?v=20260824162354'
+import { rotaComMemoria } from '../qualp.js?v=20260824162354'
+import { campoDeCidade } from '../cidades.js?v=20260824162354'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824162354'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -22,15 +22,38 @@ export function telaFreteFracionado({ parametros }) {
     origem: '',
     destino: '',
     distanciaKm: '',
-    pesoKg: '',
-    volumeM3: '',
+    // A carga é descrita volume a volume: medidas, quantidade e peso.
+    // O total de m³ e kg sai daqui — ninguém precisa cubar de cabeça.
+    volumes: [novoVolume()],
     valorNFe: '',
     taxasFixas: '',
     tabela: 'a',
     rota: null,
   }
 
+  function novoVolume() {
+    return { quantidade: '1', comprimento: '', largura: '', altura: '', pesoKg: '' }
+  }
+
+  /** Soma m³ e kg de todos os volumes digitados. */
+  function totaisDaCarga() {
+    let volumeM3 = 0
+    let pesoKg = 0
+    let quantidade = 0
+
+    for (const v of estado.volumes) {
+      const qtd = Math.max(0, Math.round(numero(v.quantidade)))
+      const m3 = numero(v.comprimento) * numero(v.largura) * numero(v.altura)
+      volumeM3 += m3 * qtd
+      pesoKg += numero(v.pesoKg) * qtd
+      quantidade += qtd
+    }
+
+    return { volumeM3, pesoKg, quantidade }
+  }
+
   const areaRegioes = el('div', { classe: 'tabelas-preco' })
+  const areaVolumes = el('div', { style: 'display:grid;gap:10px' })
   const areaTabelas = el('div', { classe: 'tabelas-preco' })
   const areaDestino = el('div')
   const areaResumo = el('div')
@@ -54,12 +77,13 @@ export function telaFreteFracionado({ parametros }) {
   }
 
   function recalcular() {
+    const carga = totaisDaCarga()
     const r = calcularFracionado({
       regiaoId: estado.regiao,
       distanciaKm: numero(estado.distanciaKm),
       pedagioCaminhao: estado.rota ? estado.rota.pedagioDinheiro : 0,
-      pesoKg: numero(estado.pesoKg),
-      volumeM3: numero(estado.volumeM3),
+      pesoKg: carga.pesoKg,
+      volumeM3: carga.volumeM3,
       valorNFe: numero(estado.valorNFe),
       taxasFixas: numero(estado.taxasFixas),
       parametros: parametrosAtuais(),
@@ -70,7 +94,8 @@ export function telaFreteFracionado({ parametros }) {
     render(areaResumo,
       el('div', { classe: 'secao__titulo', texto: `Fracionado — ${r.regiao.titulo} — Tabela ${estado.tabela.toUpperCase()}` }),
 
-      linha('Peso da balança', `${numero(estado.pesoKg).toLocaleString('pt-BR')} kg`),
+      linha('Volumes', `${carga.quantidade} · ${m3(carga.volumeM3)} m³`),
+      linha('Peso da balança', `${Math.round(carga.pesoKg).toLocaleString('pt-BR')} kg`),
       linha(`Peso cubado (${CUBAGEM_KG_POR_M3} kg/m³)`, `${Math.round(r.peso.cubado).toLocaleString('pt-BR')} kg`),
       linha('Peso considerado', `${Math.round(r.peso.cobravel).toLocaleString('pt-BR')} kg`, r.peso.cubou),
 
@@ -108,6 +133,96 @@ export function telaFreteFracionado({ parametros }) {
         }),
       ]),
     )
+  }
+
+  // ---------- Volumes ----------
+
+  /**
+   * Desenha a lista de volumes.
+   *
+   * Só é chamada ao adicionar ou remover: redesenhar a cada tecla
+   * derrubaria o teclado do iPhone no meio da digitação. Enquanto a
+   * pessoa digita, apenas o subtotal do item e o resumo lá embaixo
+   * mudam.
+   */
+  function desenharVolumes() {
+    render(areaVolumes,
+      ...estado.volumes.map((volume, indice) => itemDeVolume(volume, indice)),
+      el('button', {
+        classe: 'botao-secundario',
+        texto: '+ Adicionar outro volume',
+        onclick: () => {
+          estado.volumes.push(novoVolume())
+          desenharVolumes()
+          recalcular()
+        },
+      }),
+    )
+  }
+
+  function itemDeVolume(volume, indice) {
+    const subtotal = el('div', { classe: 'volume__subtotal' })
+
+    function atualizarSubtotal() {
+      const qtd = Math.max(0, Math.round(numero(volume.quantidade)))
+      const cada = numero(volume.comprimento) * numero(volume.largura) * numero(volume.altura)
+      const kg = numero(volume.pesoKg) * qtd
+      subtotal.textContent = `${m3(cada * qtd)} m³ · ${Math.round(kg).toLocaleString('pt-BR')} kg`
+    }
+
+    /** Campo pequeno com rótulo em cima, para caber cinco por item. */
+    function medida(rotulo, nome, exemplo) {
+      const entrada = el('input', {
+        type: 'text',
+        inputmode: 'decimal',
+        placeholder: exemplo,
+        value: volume[nome],
+        oninput: (e) => {
+          volume[nome] = e.target.value
+          atualizarSubtotal()
+          recalcular()
+        },
+      })
+      return el('label', { classe: 'volume__campo' }, [
+        el('span', { classe: 'volume__rotulo', texto: rotulo }),
+        entrada,
+      ])
+    }
+
+    atualizarSubtotal()
+
+    return el('div', { classe: 'volume' }, [
+      el('div', { classe: 'volume__topo' }, [
+        el('span', { classe: 'volume__titulo', texto: `Volume ${indice + 1}` }),
+        subtotal,
+        // Sempre sobra ao menos um item: a tela sem nenhum campo de
+        // carga pareceria quebrada.
+        estado.volumes.length > 1
+          ? el('button', {
+              classe: 'ficha__apagar',
+              type: 'button',
+              title: 'Remover este volume',
+              texto: '×',
+              onclick: () => {
+                estado.volumes.splice(indice, 1)
+                desenharVolumes()
+                recalcular()
+              },
+            })
+          : null,
+      ]),
+
+      el('div', { classe: 'volume__medidas' }, [
+        medida('Compr. (m)', 'comprimento', '1,20'),
+        medida('Larg. (m)', 'largura', '1,00'),
+        medida('Alt. (m)', 'altura', '1,10'),
+      ]),
+
+      el('div', { classe: 'volume__linha2' }, [
+        medida('Quantidade', 'quantidade', '1'),
+        medida('Peso de cada (kg)', 'pesoKg', '250'),
+      ]),
+    ])
   }
 
   // ---------- Regiões ----------
@@ -229,10 +344,16 @@ export function telaFreteFracionado({ parametros }) {
     ]),
 
     el('div', { classe: 'cartao' }, [
-      el('div', { classe: 'secao__titulo', texto: 'Carga' }),
-      campo('Peso (kg)', campoNumerico('pesoKg', '0')),
-      campo('Volume (m³)', campoNumerico('volumeM3', '0'),
-        `Usado no peso cubado: cada m³ conta como ${CUBAGEM_KG_POR_M3} kg. Vale o maior entre balança e cubagem.`),
+      el('div', { classe: 'secao__titulo', texto: 'Volumes da carga' }),
+      el('p', {
+        classe: 'campo__ajuda',
+        texto: `Medidas em metros — 60 cm é 0,60. Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`,
+      }),
+      areaVolumes,
+    ]),
+
+    el('div', { classe: 'cartao' }, [
+      el('div', { classe: 'secao__titulo', texto: 'Nota e taxas' }),
       campo('Valor da NF-e (R$)', campoNumerico('valorNFe', '0,00')),
       campo('Taxas fixas (R$)', campoNumerico('taxasFixas', '0,00'),
         'TDE, despacho, coleta — o que for combinado por fora do frete-peso.'),
@@ -248,8 +369,14 @@ export function telaFreteFracionado({ parametros }) {
   ])
 
   desenharRegioes()
+  desenharVolumes()
   desenharDestino()
   desenharTabelas()
   recalcular()
   return raiz
+}
+
+/** Formata metros cúbicos: "1,44", "0,3", "12". */
+function m3(valor) {
+  return (Math.round((valor || 0) * 100) / 100).toLocaleString('pt-BR')
 }
