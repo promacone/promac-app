@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824170228'
+} from '../frete.js?v=20260824170704'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260824170228'
-import { rotaComMemoria } from '../qualp.js?v=20260824170228'
-import { campoDeCidade } from '../cidades.js?v=20260824170228'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824170228'
+} from '../fracionado.js?v=20260824170704'
+import { rotaComMemoria } from '../qualp.js?v=20260824170704'
+import { campoDeCidade } from '../cidades.js?v=20260824170704'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824170704'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {

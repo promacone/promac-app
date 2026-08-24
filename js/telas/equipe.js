@@ -1,11 +1,11 @@
 // Onde o administrador convida, desliga e apaga quem usa o app — e ajusta
 // os percentuais comerciais da empresa.
 
-import { auth, sendPasswordResetEmail, mensagemDeErro, abrirAcessoParaConvidado } from '../firebase.js?v=20260824170228'
+import { auth, sendPasswordResetEmail, mensagemDeErro, abrirAcessoParaConvidado } from '../firebase.js?v=20260824170704'
 import {
   listarEquipe, convidar, definirAtivo, removerMembro, pareceEmail, chave,
-} from '../equipe.js?v=20260824170228'
-import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824170228'
+} from '../equipe.js?v=20260824170704'
+import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824170704'
 
 export function telaEquipe(sessao) {
   const raiz = el('div', { style: 'display:grid;gap:14px' })

@@ -40,11 +40,17 @@ export const CUBAGEM_KG_POR_M3 = 300
  * cliente esperto descobriria isso rápido.
  */
 export const FAIXAS_PADRAO = [
-  { ate: 0.10, fator: 1.6 },
-  { ate: 0.30, fator: 1.3 },
-  { ate: 0.60, fator: 1.1 },
-  { ate: 1.00, fator: 1.0 },
+  { ate: 0.10, fator: 1.35 },
+  { ate: 0.30, fator: 1.05 },
+  { ate: 0.60, fator: 0.92 },
+  { ate: 1.00, fator: 0.85 },
 ]
+// Calibragem de 2026-08-24, depois dos testes do Pedro ("pequena muito
+// barata, média e grande muito caras"): o embarque alto é quem carrega a
+// carga pequena, então os fatores puderam descer. As duas faixas de cima
+// ficam abaixo de 1 de propósito — carga grande de fracionado viaja em
+// carreta compartilhada, mais barata por quilo que o truck de
+// referência, e cobrar o rateio cheio do truck a deixava sem cliente.
 
 /** O fator na ocupação dada, interpolando entre as faixas. */
 export function fatorDeOcupacao(ocupacao, faixas = FAIXAS_PADRAO) {
@@ -79,10 +85,10 @@ export const REGIOES = [
       posicoes: 14,
       bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
     },
-    embarque: 100,
+    embarque: 150,
     faixas: FAIXAS_PADRAO,
     distanciaKm: 600,
-    minimo: 90,
+    minimo: 150,
     motorCompleto: true,
   },
   {

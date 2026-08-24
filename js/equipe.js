@@ -6,8 +6,8 @@
 import {
   bd, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs,
   serverTimestamp,
-} from './firebase.js?v=20260824170228'
-import { PARAMETROS_PADRAO } from './frete.js?v=20260824170228'
+} from './firebase.js?v=20260824170704'
+import { PARAMETROS_PADRAO } from './frete.js?v=20260824170704'
 
 /** Normaliza o e-mail: "Joao@" e "joao@" são a mesma pessoa. */
 export function chave(email) {
