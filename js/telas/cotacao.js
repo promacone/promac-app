@@ -5,6 +5,7 @@ import {
   calcularFrete, reais, percentual, numero,
 } from '../frete.js'
 import { rotaComMemoria } from '../qualp.js'
+import { campoDeCidade } from '../cidades.js'
 import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js'
 
 export function telaCotacao({ parametros }) {
@@ -207,14 +208,15 @@ export function telaCotacao({ parametros }) {
   }
 
   function campoCidade(nome, placeholder) {
-    return el('input', {
-      type: 'text',
+    return campoDeCidade({
+      valorInicial: estado[nome],
       placeholder,
-      value: estado[nome],
-      autocapitalize: 'words',
-      autocorrect: 'off',
-      spellcheck: 'false',
-      oninput: (e) => { estado[nome] = e.target.value },
+      aoEscolher: (texto) => {
+        estado[nome] = texto
+        // Trocar de cidade invalida a rota consultada.
+        estado.rota = null
+        desenharRota()
+      },
     })
   }
 

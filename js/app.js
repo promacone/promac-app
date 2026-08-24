@@ -8,7 +8,7 @@
 import {
   auth, onAuthStateChanged, signInWithEmailAndPassword,
   createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
-  updateProfile, mensagemDeErro,
+  updateProfile, mensagemDeErro, lembrarNesteAparelho,
 } from './firebase.js'
 import { buscarMembro, marcarQueEntrou, carregarParametros } from './equipe.js'
 import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js'
@@ -109,6 +109,8 @@ $('#form-login').addEventListener('submit', async (evento) => {
 
   await comCarregamento($('#login-entrar'), async () => {
     try {
+      // Precisa vir antes do login: define se a sessão fica guardada.
+      await lembrarNesteAparelho($('#login-lembrar').checked)
       await signInWithEmailAndPassword(auth, email, senha)
       // onAuthStateChanged cuida do resto.
     } catch (erro) {

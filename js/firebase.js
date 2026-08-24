@@ -22,6 +22,7 @@ import {
   onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
+  browserSessionPersistence,
 } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js'
 import {
   getFirestore,
@@ -49,10 +50,23 @@ const app = initializeApp(configuracao)
 export const auth = getAuth(app)
 export const bd = getFirestore(app)
 
-// Mantém a sessão entre aberturas do app. Num site aberto no celular da
-// própria pessoa, pedir senha toda vez atrapalharia o uso em campo — e a
-// autorização continua sendo conferida no servidor a cada leitura.
-setPersistence(auth, browserLocalPersistence).catch(() => {})
+/**
+ * Decide se a sessão sobrevive ao fechar o app.
+ *
+ * No celular da própria pessoa, pedir senha toda vez atrapalha o uso em
+ * campo. Já num computador compartilhado do escritório, manter conectado
+ * deixaria a operação aberta para o próximo que sentar — por isso a
+ * escolha fica com quem entra, e não fixa no código.
+ *
+ * A autorização continua sendo conferida no servidor a cada leitura:
+ * lembrar do login não dá acesso a quem foi removido da equipe.
+ */
+export function lembrarNesteAparelho(lembrar) {
+  return setPersistence(
+    auth,
+    lembrar ? browserLocalPersistence : browserSessionPersistence
+  ).catch(() => {})
+}
 
 export {
   signInWithEmailAndPassword,

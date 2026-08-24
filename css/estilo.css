@@ -377,3 +377,69 @@ select {
 
 .painel__topo { display: flex; justify-content: space-between; align-items: center; }
 .painel__titulo { font-size: 17px; font-weight: 700; }
+
+/* ---------- Sugestões de cidade ---------- */
+
+.campo-cidade { position: relative; }
+
+.sugestoes {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--cartao-claro);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  overflow: hidden;
+  max-height: 260px;
+  overflow-y: auto;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.sugestao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--borda);
+  font-size: 15px;
+}
+
+.sugestao:last-child { border-bottom: none; }
+.sugestao:hover, .sugestao--ativa { background: rgba(34, 166, 232, 0.12); }
+
+.sugestao__nome { color: var(--texto); }
+
+.sugestao__uf {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--azul-claro);
+  background: rgba(34, 166, 232, 0.14);
+  padding: 3px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* ---------- Manter conectado ---------- */
+
+.lembrar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  user-select: none;
+}
+
+.lembrar input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--azul-claro);
+  cursor: pointer;
+}
