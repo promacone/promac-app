@@ -5,10 +5,10 @@
 
 import {
   bd, doc, setDoc, deleteDoc, collection, getDocs,
-} from '../firebase.js?v=20260824095009'
-import { reais } from '../frete.js?v=20260824095009'
-import { el, render, campo, mostrarAviso, seletor } from '../ui.js?v=20260824095009'
-import { tornarArrastavel } from '../arrastar.js?v=20260824095009'
+} from '../firebase.js?v=20260824131734'
+import { reais } from '../frete.js?v=20260824131734'
+import { el, render, campo, mostrarAviso, seletor } from '../ui.js?v=20260824131734'
+import { tornarArrastavel } from '../arrastar.js?v=20260824131734'
 
 /** Os fretes de verdade, no Firestore. */
 export function firestore() {
