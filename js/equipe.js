@@ -6,8 +6,8 @@
 import {
   bd, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs,
   serverTimestamp,
-} from './firebase.js?v=20260824165253'
-import { PARAMETROS_PADRAO } from './frete.js?v=20260824165253'
+} from './firebase.js?v=20260824170228'
+import { PARAMETROS_PADRAO } from './frete.js?v=20260824170228'
 
 /** Normaliza o e-mail: "Joao@" e "joao@" são a mesma pessoa. */
 export function chave(email) {
@@ -130,6 +130,59 @@ export async function salvarParametros({ imposto, gris, tabelas }) {
     margemB: tabelas.b,
     margemC: tabelas.c,
   })
+}
+
+/**
+ * Ajustes do motor de fracionado (por enquanto, Sul e Sudeste).
+ *
+ * Moram no servidor pelo mesmo motivo das margens: são a régua
+ * comercial da PROMAC, e o painel de Ajustes precisa valer para a
+ * equipe inteira ao mesmo tempo.
+ */
+export async function carregarAjustesFracionado() {
+  try {
+    const registro = await getDoc(doc(bd, 'configuracao', 'fracionado'))
+    if (!registro.exists()) return null
+
+    const d = registro.data()
+    const ajustes = {}
+
+    const caminhao = {}
+    if (numeroPositivo(d.capacidadeKg)) caminhao.capacidadeKg = d.capacidadeKg
+    if (numeroPositivo(d.capacidadeM3)) caminhao.capacidadeM3 = d.capacidadeM3
+    if (numeroPositivo(d.posicoes)) caminhao.posicoes = d.posicoes
+    if (Object.keys(caminhao).length) ajustes.caminhao = caminhao
+
+    if (numeroPositivo(d.embarque) || d.embarque === 0) ajustes.embarque = d.embarque
+    if (numeroPositivo(d.minimo) || d.minimo === 0) ajustes.minimo = d.minimo
+
+    // As quatro faixas de margem por ocupação.
+    if (Array.isArray(d.faixas) && d.faixas.length) {
+      const faixas = d.faixas
+        .filter((f) => numeroPositivo(f?.ate) && numeroPositivo(f?.fator))
+        .sort((a, b) => a.ate - b.ate)
+      if (faixas.length) ajustes.faixas = faixas
+    }
+
+    return Object.keys(ajustes).length ? ajustes : null
+  } catch {
+    return null
+  }
+}
+
+export async function salvarAjustesFracionado(ajustes) {
+  await setDoc(doc(bd, 'configuracao', 'fracionado'), {
+    capacidadeKg: ajustes.caminhao.capacidadeKg,
+    capacidadeM3: ajustes.caminhao.capacidadeM3,
+    posicoes: ajustes.caminhao.posicoes,
+    embarque: ajustes.embarque,
+    minimo: ajustes.minimo,
+    faixas: ajustes.faixas,
+  })
+}
+
+function numeroPositivo(valor) {
+  return typeof valor === 'number' && Number.isFinite(valor) && valor > 0
 }
 
 /** Mesma lógica: as margens de verdade moram no Firestore. */

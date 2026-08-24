@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824165253'
+} from '../frete.js?v=20260824170228'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260824165253'
-import { rotaComMemoria } from '../qualp.js?v=20260824165253'
-import { campoDeCidade } from '../cidades.js?v=20260824165253'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824165253'
+} from '../fracionado.js?v=20260824170228'
+import { rotaComMemoria } from '../qualp.js?v=20260824170228'
+import { campoDeCidade } from '../cidades.js?v=20260824170228'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824170228'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -25,6 +25,7 @@ export function telaFreteFracionado({ parametros }) {
     // A carga é descrita volume a volume: medidas, quantidade e peso.
     // O total de m³ e kg sai daqui — ninguém precisa cubar de cabeça.
     volumes: [novoVolume()],
+    ocupadoM3: '',
     valorNFe: '',
     taxasFixas: '',
     tabela: 'a',
@@ -126,6 +127,8 @@ export function telaFreteFracionado({ parametros }) {
       pedagioCaminhao: estado.rota ? estado.rota.pedagioDinheiro : 0,
       pesoKg: carga.pesoKg,
       volumeM3: carga.volumeM3,
+      ocupadoM3: numero(estado.ocupadoM3),
+      ajustes: parametros.fracionado || null,
       valorNFe: numero(estado.valorNFe),
       taxasFixas: numero(estado.taxasFixas),
       parametros: parametrosAtuais(),
@@ -134,37 +137,63 @@ export function telaFreteFracionado({ parametros }) {
     })
 
     const temBau = !!r.capacidadeM3
+    const motor = !!r.regiao.motorCompleto
 
     render(areaResumo,
       el('div', { classe: 'secao__titulo', texto: `Fracionado — ${r.regiao.titulo} — Tabela ${estado.tabela.toUpperCase()}` }),
 
       linha('Volumes', `${carga.quantidade} · ${m3(carga.volumeM3)} m³`),
-      linha('Peso da balança', `${Math.round(carga.pesoKg).toLocaleString('pt-BR')} kg`),
+      linha('Peso real', `${Math.round(carga.pesoKg).toLocaleString('pt-BR')} kg`),
+      linha(`Peso cubado (${CUBAGEM_KG_POR_M3} kg/m³)`, `${Math.round(r.peso.cubado).toLocaleString('pt-BR')} kg`),
+      linha('Peso faturado', `${Math.round(r.peso.cobravel).toLocaleString('pt-BR')} kg`, r.peso.cubou),
 
-      // Com o baú conhecido, o rateio é contra a carreta real: mostra a
-      // ocupação nas duas dimensões e qual delas mandou no preço.
-      temBau ? linha('Ocupação do baú (espaço)', percentual(r.fatiaEspaco), r.cobrouPorEspaco) : null,
+      // Ocupação nas duas dimensões, com destaque na que mandou.
+      temBau ? linha(`Ocupação em espaço (${m3(r.capacidadeM3)} m³)`, percentual(r.fatiaEspaco), r.cobrouPorEspaco) : null,
       temBau ? linha(`Ocupação em peso (${r.regiao.caminhao.capacidadeKg / 1000} t)`, percentual(r.fatiaPeso), !r.cobrouPorEspaco) : null,
-
-      !temBau ? linha(`Peso cubado (${CUBAGEM_KG_POR_M3} kg/m³)`, `${Math.round(r.peso.cubado).toLocaleString('pt-BR')} kg`) : null,
-      !temBau ? linha('Peso considerado', `${Math.round(r.peso.cobravel).toLocaleString('pt-BR')} kg`, r.peso.cubou) : null,
 
       linha(
         temBau
-          ? `${veiculoCheio(r.regiao)} (${r.regiao.caminhao.capacidadeKg / 1000} t · ${m3(r.capacidadeM3)} m³ · ${r.distanciaKm} km)`
+          ? `${veiculoCheio(r.regiao)} — dedicado da rota (${r.distanciaKm} km)`
           : `Caminhão cheio (${r.regiao.caminhao.capacidadeKg / 1000} t, ${r.distanciaKm} km)`,
         reais(r.freteCaminhaoCheio)),
       linha(`Valor por km (${nomeDoVeiculo(r.regiao).toLowerCase()})`, `${reais(r.valorPorKm)}/km`),
-      linha('Fatia cobrada da carga', percentual(r.fatia)),
-      r.embarque > 0
-        ? linha(`Rateio do espaço${r.fator > 1 ? ` (× ${String(r.fator).replace('.', ',')})` : ''}`, reais(r.rateio))
+
+      // Consolidação: o quanto do truck já estava vendido muda a faixa.
+      r.consolidacao && r.consolidacao.ocupadoM3 > 0
+        ? linha('Truck com esta carga', `${m3(r.consolidacao.totalM3)} de ${m3(r.capacidadeM3)} m³`)
         : null,
-      r.embarque > 0
-        ? linha('Embarque (coleta e manuseio)', reais(r.embarque))
+
+      motor
+        ? linha(`Fator de rentabilidade (ocupação ${percentual(r.ocupacaoParaFator)})`,
+            `× ${r.fator.toFixed(2).replace('.', ',')}`)
         : null,
-      linha(r.usouMinimo ? `Frete-peso (mínimo da região)` : 'Frete-peso', reais(r.fretePeso), true),
+
+      linha('Rateio da carga', reais(r.rateio)),
+      r.embarque > 0 ? linha('Coleta e entrega (embarque)', reais(r.embarque)) : null,
+      linha(r.usouMinimo ? 'Frete-peso (mínimo aplicado)' : 'Frete-peso', reais(r.fretePeso), true),
+
+      r.pedagioDaFatia > 0 ? linha('Pedágio incluso na fatia', reais(r.pedagioDaFatia)) : null,
+      motor ? linha(`Impostos inclusos (${percentual(parametros.imposto)})`, reais(r.fretePeso * parametros.imposto)) : null,
+      motor ? linha('Margem PROMAC (estimada)', reais(Math.max(0, r.margemEstimada))) : null,
+
       linha(`GRIS (${percentual(parametros.gris)} da NF-e)`, reais(r.gris)),
       linha('Taxas fixas', reais(r.taxas)),
+      linha('Prazo estimado', `${r.prazo.de} a ${r.prazo.ate} dias úteis`),
+
+      r.consolidacao && r.consolidacao.ocupadoM3 > 0 && r.consolidacao.cabe
+        ? el('p', {
+            classe: 'campo__ajuda',
+            style: 'margin-top:10px',
+            texto: `Consolidação: sobra ${m3(r.consolidacao.restanteM3)} m³ no truck depois desta carga. Por aproveitar uma viagem já vendida, a ocupação subiu de faixa e o fator caiu.`,
+          })
+        : null,
+
+      r.consolidacao && !r.consolidacao.cabe
+        ? el('div', {
+            classe: 'aviso aviso--atencao',
+            texto: `Não cabe: o truck já tem ${m3(r.consolidacao.ocupadoM3)} m³ ocupados e esta carga tem ${m3(carga.volumeM3)} m³ — passa de ${m3(r.capacidadeM3)} m³. Seria outro veículo.`,
+          })
+        : null,
 
       r.bateuNoTeto
         ? el('div', {
@@ -431,6 +460,13 @@ export function telaFreteFracionado({ parametros }) {
       el('div', { classe: 'secao__titulo', texto: 'Volumes da carga' }),
       areaAjudaVolumes,
       areaVolumes,
+    ]),
+
+    el('div', { classe: 'cartao' }, [
+      el('div', { classe: 'secao__titulo', texto: 'Consolidação' }),
+      campo('Espaço já vendido neste truck (m³)', campoNumerico('ocupadoM3', '0'),
+        'Se a rota já tem cargas fechadas, informe quanto do truck elas ocupam. '
+        + 'A carga nova aproveita a viagem e o preço dela cai de faixa.'),
     ]),
 
     el('div', { classe: 'cartao' }, [

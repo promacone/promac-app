@@ -4,10 +4,11 @@
 // acesso e mexer em quanto se cobra são assuntos diferentes, e misturá-los
 // numa tela só confundia na hora de achar.
 
-import { salvarParametros } from '../equipe.js?v=20260824165253'
-import { RESOLUCAO_ANTT, percentual } from '../frete.js?v=20260824165253'
-import { mensagemDeErro } from '../firebase.js?v=20260824165253'
-import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824165253'
+import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260824170228'
+import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260824170228'
+import { regiao, FAIXAS_PADRAO } from '../fracionado.js?v=20260824170228'
+import { mensagemDeErro } from '../firebase.js?v=20260824170228'
+import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824170228'
 
 export function telaConfiguracoes(sessao) {
   const ehAdministrador = sessao.membro.papel === 'master'
@@ -110,6 +111,8 @@ export function telaConfiguracoes(sessao) {
         ])
       : el('div', { classe: 'cartao' }, [resumo]),
 
+    cartaoFracionado(),
+
     el('div', { classe: 'cartao' }, [
       el('div', { classe: 'secao__titulo', texto: 'Tabela de piso mínimo' }),
       el('p', { classe: 'campo__ajuda' }, [
@@ -118,6 +121,139 @@ export function telaConfiguracoes(sessao) {
       ]),
     ]),
   ])
+
+  /**
+   * Motor do frete fracionado — Sul e Sudeste.
+   *
+   * O que se ajusta aqui muda o preço para a equipe inteira na hora: o
+   * truck de referência, o embarque, o mínimo e as quatro faixas de
+   * margem por ocupação que o Pedro definiu.
+   */
+  function cartaoFracionado() {
+    const padrao = regiao('sulSudeste')
+    const atual = sessao.parametros.fracionado || {}
+    const caminhaoAtual = { ...padrao.caminhao, ...(atual.caminhao || {}) }
+    const faixasAtuais = atual.faixas || padrao.faixas || FAIXAS_PADRAO
+
+    const avisoFrac = el('div')
+
+    const numerico = (valor) => el('input', {
+      type: 'text',
+      inputmode: 'decimal',
+      value: String(valor).replace('.', ','),
+      disabled: !ehAdministrador,
+    })
+
+    const capacidadeKg = numerico(caminhaoAtual.capacidadeKg)
+    const capacidadeM3 = numerico(caminhaoAtual.capacidadeM3 || 48)
+    const posicoes = numerico(caminhaoAtual.posicoes || 14)
+    const embarque = numerico(atual.embarque ?? padrao.embarque)
+    const minimo = numerico(atual.minimo ?? padrao.minimo)
+
+    // Uma linha por faixa: "até X% -> fator Y".
+    const camposFaixas = faixasAtuais.map((f) => ({
+      ate: numerico(Math.round(f.ate * 100)),
+      fator: numerico(f.fator),
+    }))
+
+    const rotulosFaixas = [
+      'Ocupação pequena — margem mais alta',
+      'Ocupação média — margem padrão',
+      'Ocupação grande — margem reduzida',
+      'Fecha o caminhão — margem mínima',
+    ]
+
+    async function salvarFracionado(botao) {
+      mostrarAviso(avisoFrac, '')
+
+      const lerNumero = (input) => {
+        const v = numero(input.value)
+        return Number.isFinite(v) && v > 0 ? v : null
+      }
+
+      const dados = {
+        caminhao: {
+          capacidadeKg: lerNumero(capacidadeKg),
+          capacidadeM3: lerNumero(capacidadeM3),
+          posicoes: lerNumero(posicoes),
+        },
+        embarque: numero(embarque.value),
+        minimo: numero(minimo.value),
+        faixas: camposFaixas.map((c) => ({
+          ate: (lerNumero(c.ate) || 0) / 100,
+          fator: lerNumero(c.fator),
+        })),
+      }
+
+      if (!dados.caminhao.capacidadeKg || !dados.caminhao.capacidadeM3) {
+        mostrarAviso(avisoFrac, 'Capacidade de peso e de cubagem precisam ser maiores que zero.')
+        return
+      }
+      if (dados.faixas.some((f) => !f.fator || f.ate <= 0 || f.ate > 1)) {
+        mostrarAviso(avisoFrac, 'Cada faixa precisa de um limite entre 1 e 100% e um fator maior que zero.')
+        return
+      }
+      // Faixas fora de ordem fariam a interpolação andar para trás.
+      for (let i = 1; i < dados.faixas.length; i++) {
+        if (dados.faixas[i].ate <= dados.faixas[i - 1].ate) {
+          mostrarAviso(avisoFrac, 'Os limites das faixas precisam crescer: cada um maior que o anterior.')
+          return
+        }
+      }
+
+      await comCarregamento(botao, async () => {
+        try {
+          await salvarAjustesFracionado(dados)
+          sessao.parametros.fracionado = dados
+          mostrarAviso(avisoFrac, 'Motor do fracionado salvo. As cotações já usam os novos valores.', 'ok')
+        } catch (erro) {
+          mostrarAviso(avisoFrac, mensagemDeErro(erro))
+        }
+      })
+    }
+
+    return el('div', { classe: 'cartao' }, [
+      el('div', { classe: 'secao__titulo', texto: 'Frete fracionado — Sul e Sudeste' }),
+      el('p', {
+        classe: 'campo__ajuda',
+        texto: 'O truck de referência do rateio e a régua de margem por ocupação. Vale para a equipe inteira.',
+      }),
+
+      campo('Peso máximo do truck (kg)', capacidadeKg),
+      campo('Cubagem máxima (m³)', capacidadeM3),
+      campo('Posições de pallet', posicoes),
+      campo('Embarque — coleta e manuseio (R$)', embarque,
+        'Parcela fixa somada a toda cotação. É o que segura o preço da carga pequena.'),
+      campo('Frete mínimo (R$)', minimo),
+
+      el('div', { classe: 'secao__titulo', style: 'margin-top:8px', texto: 'Margem por ocupação do truck' }),
+      ...camposFaixas.map((c, i) =>
+        el('div', { classe: 'faixa' }, [
+          el('div', { classe: 'campo__ajuda', texto: rotulosFaixas[i] || `Faixa ${i + 1}` }),
+          el('div', { classe: 'faixa__campos' }, [
+            el('label', { classe: 'volume__campo' }, [
+              el('span', { classe: 'volume__rotulo', texto: 'Até (%)' }),
+              c.ate,
+            ]),
+            el('label', { classe: 'volume__campo' }, [
+              el('span', { classe: 'volume__rotulo', texto: 'Fator' }),
+              c.fator,
+            ]),
+          ]),
+        ])),
+
+      avisoFrac,
+
+      ehAdministrador
+        ? el('button', {
+            classe: 'botao',
+            style: 'margin-top:6px',
+            texto: 'Salvar motor do fracionado',
+            onclick: (evento) => salvarFracionado(evento.currentTarget),
+          })
+        : null,
+    ])
+  }
 
   async function salvar() {
     mostrarAviso(avisoEl, '')

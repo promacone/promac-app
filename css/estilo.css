@@ -1294,3 +1294,7 @@ body.arrastando .ficha { cursor: grabbing; }
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/* Faixas de margem no painel de Ajustes. */
+.faixa { display: grid; gap: 6px; margin-top: 10px; }
+.faixa__campos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

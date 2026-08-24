@@ -1,75 +1,96 @@
-// Frete fracionado: a carga divide o caminhão com outras.
+// Motor de preço do frete fracionado.
 //
-// Não existe piso da ANTT para fração de caminhão — a lei só fala do
-// veículo inteiro. A ideia da PROMAC, então, é ratear: calcula-se o
-// frete do caminhão cheio pela tabela ANTT, na distância real da rota,
-// e cobra-se da carga a fatia que ela ocupa.
+// A ideia central, desenhada pelo Pedro: não existe tabela fixa. O preço
+// nasce da pergunta "quanto deste caminhão essa carga ocupa?" — e o
+// caminhão de referência é um truck dedicado, cotado pela mesma conta do
+// frete dedicado (piso ANTT no km real + tabela comercial da PROMAC).
 //
-// A fatia é o maior entre dois pesos:
-// - o peso real da balança;
-// - o "peso cubado", que traduz volume em quilos (300 kg por m³, o
-//   padrão rodoviário). Sem ele, 500 kg de isopor ocupariam o caminhão
-//   inteiro pagando quase nada.
+//   frete = embarque fixo + (fatia do truck × preço do truck × fator)
 //
-// Este arquivo guarda o desenho da cobrança por região. Os números de
-// cada região são um ponto de partida para o Pedro calibrar — o desenho
-// veio primeiro, os valores vêm da prática.
+// O embarque cobre coleta, manuseio e emissão — custa parecido para
+// 30 kg ou 3 t, e é o que impede a carga pequena de sair de graça.
+//
+// O fator varia com a ocupação (ver FAIXAS_PADRAO): carga pequena paga
+// proporcionalmente mais, porque o resto do caminhão ainda precisa ser
+// vendido; carga que quase fecha o truck paga quase o rateio seco,
+// porque ela é quem garante a viagem.
+//
+// Travas comerciais, nesta ordem:
+//   piso   — nunca abaixo do custo da fatia (piso ANTT proporcional);
+//   mínimo — nunca abaixo do frete mínimo por despacho;
+//   teto   — nunca acima do truck dedicado inteiro: chegou lá, o certo
+//            é vender o dedicado.
+//
+// Por enquanto o motor completo vale para o Sul/Sudeste; as outras
+// regiões seguem na cubagem comercial simples até serem calibradas.
 
-/** Quilos que 1 m³ representa na cobrança. Padrão do setor rodoviário. */
+/** Quilos que 1 m³ representa no peso cubado. Padrão rodoviário. */
 export const CUBAGEM_KG_POR_M3 = 300
 
 /**
- * As três frentes de venda do fracionado.
+ * Margem por ocupação do truck, como o Pedro definiu:
  *
- * Cada região carrega o caminhão de referência do rateio e a viagem
- * típica. A referência é a carreta de 25 t em todas — o que muda entre
- * as regiões é a distância típica e o mínimo por despacho.
+ *   até 10%  → fator mais alto (a carga pequena contribui mais)
+ *   10–30%   → fator padrão
+ *   30–60%   → fator reduzido, para competir
+ *   acima    → fator mínimo (a carga fecha o caminhão)
  *
- * `capacidadeKg` é quanto o caminhão de referência leva; `distanciaKm`
- * é a viagem típica da região — usada só enquanto a rota real não foi
- * buscada; `minimo` é o piso por despacho,
- * para uma caixa de 5 kg não sair de graça.
+ * Entre os degraus o fator desce em linha reta, sem saltos: numa tabela
+ * de degrau seco, 1 kg a mais faria o preço CAIR ao cruzar a faixa — e
+ * cliente esperto descobriria isso rápido.
  */
+export const FAIXAS_PADRAO = [
+  { ate: 0.10, fator: 1.6 },
+  { ate: 0.30, fator: 1.3 },
+  { ate: 0.60, fator: 1.1 },
+  { ate: 1.00, fator: 1.0 },
+]
+
+/** O fator na ocupação dada, interpolando entre as faixas. */
+export function fatorDeOcupacao(ocupacao, faixas = FAIXAS_PADRAO) {
+  const o = Math.max(0, Math.min(1, ocupacao))
+  if (!faixas.length) return 1
+  if (o <= faixas[0].ate) return faixas[0].fator
+
+  for (let i = 1; i < faixas.length; i++) {
+    const anterior = faixas[i - 1]
+    const atual = faixas[i]
+    if (o <= atual.ate) {
+      const posicao = (o - anterior.ate) / (atual.ate - anterior.ate)
+      return anterior.fator + (atual.fator - anterior.fator) * posicao
+    }
+  }
+  return faixas[faixas.length - 1].fator
+}
+
 export const REGIOES = [
   {
     id: 'sulSudeste',
     titulo: 'Sul e Sudeste',
     sigla: 'S/SE',
     ufs: ['PR', 'SC', 'RS', 'SP', 'RJ', 'MG', 'ES'],
-    // A referência do rateio é o truck de 14 t, não a carreta.
-    //
-    // Foi calibragem na prática: com a carreta, a carga pequena saía
-    // barata demais (fatia minúscula de um veículo barato por quilo) e a
-    // grande, cara demais. O truck é mais caro por quilo — o que sobe o
-    // preço das cargas pequenas — e o teto vira o preço do truck
-    // dedicado, mais baixo, o que segura as grandes.
-    //
-    // Baú do truck: 8,50 × 2,40 × 2,80 = 57,1 m³ para 14 toneladas.
+    // O truck de referência, como o Pedro especificou: 14 t, 48 m³ de
+    // cubagem útil, 14 posições de pallet, baú de 8,5 m. Os valores
+    // podem ser sobrescritos pelo painel de Ajustes.
     caminhao: {
-      nome: 'Truck', tipo: 'geral', eixos: 3, capacidadeKg: 14000,
+      nome: 'Truck', tipo: 'geral', eixos: 3,
+      capacidadeKg: 14000,
+      capacidadeM3: 48,
+      posicoes: 14,
       bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
     },
-    // O preço do fracionado tem duas partes, e a forma importa:
-    //
-    //   frete = embarque fixo + rateio x fator
-    //
-    // O embarque (coleta, manuseio, emissão) custa parecido para 30 kg
-    // ou 3 t — é ele que impede a carga pequena de sair de graça. O
-    // fator sobre o rateio é baixo, cobrindo só o espaço que viaja
-    // vazio — é isso que impede a carga grande de explodir. Um fator
-    // único fazendo os dois papéis (a versão anterior, x3) errava nas
-    // duas pontas ao mesmo tempo.
     embarque: 100,
-    fatorFracionado: 1.3,
+    faixas: FAIXAS_PADRAO,
     distanciaKm: 600,
     minimo: 90,
+    motorCompleto: true,
   },
   {
     id: 'centroOeste',
     titulo: 'Centro-Oeste',
     sigla: 'CO',
     ufs: ['MT', 'MS', 'GO', 'DF'],
-    caminhao: { tipo: 'geral', eixos: 5, capacidadeKg: 25000 },
+    caminhao: { nome: 'Carreta', tipo: 'geral', eixos: 5, capacidadeKg: 25000 },
     distanciaKm: 1200,
     minimo: 130,
   },
@@ -79,24 +100,25 @@ export const REGIOES = [
     sigla: 'N/NE',
     ufs: ['BA', 'SE', 'AL', 'PE', 'PB', 'RN', 'CE', 'PI', 'MA',
           'PA', 'AP', 'AM', 'RR', 'RO', 'AC', 'TO'],
-    caminhao: { tipo: 'geral', eixos: 5, capacidadeKg: 25000 },
+    caminhao: { nome: 'Carreta', tipo: 'geral', eixos: 5, capacidadeKg: 25000 },
     distanciaKm: 2500,
     minimo: 220,
   },
 ]
 
-/** Espaço útil do baú, em m³ — ou null se a região não o declarou. */
+export function regiao(id) {
+  return REGIOES.find((r) => r.id === id) || REGIOES[0]
+}
+
+/** Espaço útil declarado do caminhão, ou o do baú, ou nada. */
 export function capacidadeM3(caminhao) {
+  if (caminhao?.capacidadeM3) return caminhao.capacidadeM3
   const b = caminhao?.bau
   if (!b) return null
   return b.comprimento * b.largura * b.altura
 }
 
-export function regiao(id) {
-  return REGIOES.find((r) => r.id === id) || REGIOES[0]
-}
-
-/** O peso que vale para a cobrança: o real ou o cubado, o maior. */
+/** Peso real, cubado e o faturado (o maior dos dois). */
 export function pesoCobravel({ pesoKg = 0, volumeM3 = 0 }) {
   const cubado = Math.max(0, volumeM3) * CUBAGEM_KG_POR_M3
   return {
@@ -108,18 +130,25 @@ export function pesoCobravel({ pesoKg = 0, volumeM3 = 0 }) {
 }
 
 /**
- * A conta do fracionado.
+ * Prazo estimado de entrega, em dias úteis.
  *
- * 1. Frete do caminhão de referência cheio, na viagem típica da região,
- *    pela mesma função do dedicado (piso ANTT + imposto + margem "por
- *    dentro").
- * 2. Fatia da carga: peso cobrável ÷ capacidade do caminhão.
- * 3. Frete-peso = frete cheio × fatia, nunca abaixo do mínimo da região.
- * 4. GRIS sobre a nota + taxas fixas por fora.
+ * Uns 500 km rodados por dia, mais um dia de consolidação — fracionado
+ * espera fechar caminhão antes de sair.
+ */
+export function prazoEstimado(distanciaKm) {
+  const rodagem = Math.max(1, Math.ceil(Math.max(0, distanciaKm) / 500))
+  return { de: rodagem, ate: rodagem + 1 }
+}
+
+/**
+ * A cotação do fracionado.
  *
- * @param calcularFreteDedicado a função `calcularFrete` de frete.js —
- *        vem por parâmetro para este módulo não conhecer a tabela ANTT.
- * @param coeficientes          idem, `coeficientes` de frete.js.
+ * @param ajustes     valores do painel de Ajustes que sobrescrevem os da
+ *                    região (capacidades, embarque, mínimo, faixas)
+ * @param ocupadoM3   espaço do truck já vendido para outras cargas —
+ *                    liga a inteligência de consolidação
+ * @param calcularFreteDedicado / coeficientes — vêm de frete.js; o motor
+ *                    não conhece a tabela ANTT diretamente.
  */
 export function calcularFracionado({
   regiaoId,
@@ -129,19 +158,30 @@ export function calcularFracionado({
   volumeM3 = 0,
   valorNFe = 0,
   taxasFixas = 0,
+  ocupadoM3 = 0,
+  ajustes = null,
   parametros,
   calcularFreteDedicado,
   coeficientes,
 }) {
-  const r = regiao(regiaoId)
+  const base = regiao(regiaoId)
+
+  // O painel de Ajustes manda por cima do padrão da região.
+  const r = ajustes
+    ? {
+        ...base,
+        caminhao: { ...base.caminhao, ...(ajustes.caminhao || {}) },
+        embarque: ajustes.embarque ?? base.embarque,
+        minimo: ajustes.minimo ?? base.minimo,
+        faixas: ajustes.faixas ?? base.faixas,
+      }
+    : base
+
   const peso = pesoCobravel({ pesoKg, volumeM3 })
   const espacoDoBau = capacidadeM3(r.caminhao)
-
-  // Sem rota buscada, a viagem típica da região segura a estimativa.
   const km = distanciaKm > 0 ? distanciaKm : r.distanciaKm
 
-  // O frete do caminhão inteiro, sem GRIS (o GRIS é da nota desta carga,
-  // não do caminhão de referência).
+  // 1) O caminhão de referência, cheio, na rota real.
   const cheio = calcularFreteDedicado({
     distanciaKm: km,
     valorNFe: 0,
@@ -150,19 +190,11 @@ export function calcularFracionado({
     coeficientes: coeficientes(r.caminhao.tipo, r.caminhao.eixos),
     parametros,
   })
+  const pedagio = Math.max(0, pedagioCaminhao)
+  const cheioComPedagio = cheio.total + pedagio
+  const custoCheio = cheio.custo + pedagio
 
-  // O pedágio do caminhão entra no valor cheio antes do rateio: cada
-  // carga paga sua fração da estrada, como paga sua fração do diesel.
-  const cheioComPedagio = cheio.total + Math.max(0, pedagioCaminhao)
-
-  // A fatia que a carga ocupa do caminhão.
-  //
-  // Com o baú declarado, mede-se contra o caminhão real: a carga esgota
-  // ou o peso (25 t) ou o espaço (100,8 m³), e paga pela dimensão que
-  // esgota primeiro. É o que acontece na prática — uma carreta lotada de
-  // isopor viaja leve, mas ninguém mais embarca nela.
-  //
-  // Sem o baú, vale a cubagem comercial de pesoCobravel (300 kg/m³).
+  // 2) Quanto a carga ocupa, por peso e por espaço.
   let fatiaPeso = null
   let fatiaEspaco = null
   let fatia
@@ -175,47 +207,78 @@ export function calcularFracionado({
     fatia = r.caminhao.capacidadeKg > 0 ? peso.cobravel / r.caminhao.capacidadeKg : 0
   }
 
-  // As duas partes do preço (ver comentário na região).
-  const fator = r.fatorFracionado || 1
   const temCarga = peso.cobravel > 0
+
+  // 3) Consolidação: com parte do truck já vendida, o fator é avaliado
+  // na ocupação do caminhão como um todo — a carga nova aproveita uma
+  // viagem que já está paga em parte, e o preço dela cai de faixa.
+  const jaOcupado = espacoDoBau ? Math.max(0, ocupadoM3) / espacoDoBau : 0
+  const ocupacaoParaFator = Math.min(1, Math.max(fatia, fatia + jaOcupado))
+
+  const consolidacao = espacoDoBau
+    ? {
+        ocupadoM3: Math.max(0, ocupadoM3),
+        totalM3: Math.max(0, ocupadoM3) + Math.max(0, volumeM3),
+        restanteM3: Math.max(0, espacoDoBau - Math.max(0, ocupadoM3) - Math.max(0, volumeM3)),
+        cabe: Math.max(0, ocupadoM3) + Math.max(0, volumeM3) <= espacoDoBau + 1e-9,
+      }
+    : null
+
+  // 4) O preço.
+  const fator = r.motorCompleto
+    ? fatorDeOcupacao(ocupacaoParaFator, r.faixas)
+    : (r.fatorFracionado || 1)
 
   const rateio = cheioComPedagio * fatia * fator
   const embarque = temCarga ? (r.embarque || 0) : 0
   const proposto = rateio + embarque
 
-  // Teto: fracionado nunca custa mais que o veículo de referência
-  // inteiro. Chegou lá, o certo é oferecer o dedicado, não cobrar mais
-  // caro pelo serviço pior.
+  // 5) As travas, do chão ao teto.
+  const pisoDeCusto = custoCheio * fatia
   const bateuNoTeto = temCarga && proposto > cheioComPedagio
-  const comTeto = bateuNoTeto ? cheioComPedagio : proposto
 
-  const fretePeso = Math.max(comTeto, temCarga ? r.minimo : 0)
-  const usouMinimo = temCarga && comTeto < r.minimo
+  let fretePeso = Math.max(proposto, pisoDeCusto)
+  if (bateuNoTeto) fretePeso = cheioComPedagio
+  const usouMinimo = temCarga && fretePeso < r.minimo
+  if (temCarga) fretePeso = Math.max(fretePeso, r.minimo)
 
   const gris = Math.max(0, valorNFe) * (parametros.gris || 0)
   const taxas = Math.max(0, taxasFixas)
+  const total = fretePeso + gris + taxas
+
+  // Margem estimada: o que sobra depois do imposto e do custo ANTT da
+  // fatia. O custo real do embarque não está aqui — é estimativa para
+  // leitura, não contabilidade.
+  const margemEstimada = fretePeso * (1 - (parametros.imposto || 0)) - pisoDeCusto
 
   return {
     regiao: r,
     distanciaKm: km,
     usouViagemTipica: !(distanciaKm > 0),
+    prazo: prazoEstimado(km),
     peso,
     capacidadeM3: espacoDoBau,
     freteCaminhaoCheio: cheioComPedagio,
+    custoCaminhaoCheio: custoCheio,
     valorPorKm: km > 0 ? cheioComPedagio / km : 0,
+    pedagioDaFatia: pedagio * fatia,
     fatia,
-    fator,
-    rateio,
-    embarque,
     fatiaPeso,
     fatiaEspaco,
     cobrouPorEspaco: espacoDoBau ? fatiaEspaco > fatiaPeso : peso.cubou,
+    ocupacaoParaFator,
+    consolidacao,
+    fator,
+    rateio,
+    embarque,
+    pisoDeCusto,
+    margemEstimada,
     fretePeso,
     usouMinimo,
     bateuNoTeto,
     gris,
     taxas,
-    total: fretePeso + gris + taxas,
+    total,
   }
 }
 
