@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824163809'
+} from '../frete.js?v=20260824164049'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260824163809'
-import { rotaComMemoria } from '../qualp.js?v=20260824163809'
-import { campoDeCidade } from '../cidades.js?v=20260824163809'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824163809'
+} from '../fracionado.js?v=20260824164049'
+import { rotaComMemoria } from '../qualp.js?v=20260824164049'
+import { campoDeCidade } from '../cidades.js?v=20260824164049'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824164049'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -146,9 +146,19 @@ export function telaFreteFracionado({ parametros }) {
         reais(r.freteCaminhaoCheio)),
       linha('Valor por km da carreta', `${reais(r.valorPorKm)}/km`),
       linha('Fatia cobrada da carga', percentual(r.fatia)),
+      r.fator > 1
+        ? linha('Fator do fracionado', `× ${String(r.fator).replace('.', ',')}`)
+        : null,
       linha(r.usouMinimo ? `Frete-peso (mínimo da região)` : 'Frete-peso', reais(r.fretePeso), true),
       linha(`GRIS (${percentual(parametros.gris)} da NF-e)`, reais(r.gris)),
       linha('Taxas fixas', reais(r.taxas)),
+
+      r.bateuNoTeto
+        ? el('div', {
+            classe: 'aviso aviso--atencao',
+            texto: 'Essa carga já paga o preço da carreta inteira — o valor foi travado nele. Vale oferecer o frete dedicado.',
+          })
+        : null,
 
       r.fatia > 1
         ? el('div', {

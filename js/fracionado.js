@@ -44,6 +44,11 @@ export const REGIOES = [
       tipo: 'geral', eixos: 5, capacidadeKg: 25000,
       bau: { comprimento: 15, largura: 2.4, altura: 2.8 },
     },
+    // O rateio seco supõe a carreta 100% cheia e de graça para operar.
+    // O fracionado real tem coleta, manuseio no terminal e espaço que
+    // sobra vazio — o mercado cobra em torno de 3x o rateio para cobrir
+    // isso. É o número a calibrar com os fretes que a PROMAC já fechou.
+    fatorFracionado: 3,
     distanciaKm: 600,
     minimo: 90,
   },
@@ -158,9 +163,20 @@ export function calcularFracionado({
     fatia = r.caminhao.capacidadeKg > 0 ? peso.cobravel / r.caminhao.capacidadeKg : 0
   }
 
-  const proporcional = cheioComPedagio * fatia
-  const fretePeso = Math.max(proporcional, peso.cobravel > 0 ? r.minimo : 0)
-  const usouMinimo = peso.cobravel > 0 && proporcional < r.minimo
+  // O fator do fracionado transforma o rateio ideal em preço de
+  // operação real (ver comentário na região).
+  const fator = r.fatorFracionado || 1
+  const proporcional = cheioComPedagio * fatia * fator
+
+  // Teto: fracionado nunca custa mais que a carreta inteira. Com o
+  // fator de 3, uma carga acima de um terço da carreta passaria do
+  // preço do dedicado — e aí o certo é oferecer o dedicado, não cobrar
+  // mais caro pelo serviço pior.
+  const bateuNoTeto = proporcional > cheioComPedagio && peso.cobravel > 0
+  const comTeto = bateuNoTeto ? cheioComPedagio : proporcional
+
+  const fretePeso = Math.max(comTeto, peso.cobravel > 0 ? r.minimo : 0)
+  const usouMinimo = peso.cobravel > 0 && comTeto < r.minimo
 
   const gris = Math.max(0, valorNFe) * (parametros.gris || 0)
   const taxas = Math.max(0, taxasFixas)
@@ -174,11 +190,13 @@ export function calcularFracionado({
     freteCaminhaoCheio: cheioComPedagio,
     valorPorKm: km > 0 ? cheioComPedagio / km : 0,
     fatia,
+    fator,
     fatiaPeso,
     fatiaEspaco,
     cobrouPorEspaco: espacoDoBau ? fatiaEspaco > fatiaPeso : peso.cubou,
     fretePeso,
     usouMinimo,
+    bateuNoTeto,
     gris,
     taxas,
     total: fretePeso + gris + taxas,
