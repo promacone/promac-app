@@ -8,6 +8,7 @@ import {
 } from '../firebase.js'
 import { reais } from '../frete.js'
 import { el, render, campo, mostrarAviso, seletor } from '../ui.js'
+import { tornarArrastavel } from '../arrastar.js'
 
 export const ESTAGIOS = [
   { id: 'coleta', titulo: 'Coleta', cor: '#737d8c' },
@@ -145,6 +146,7 @@ export function telaContratacoes(sessao) {
 
       return el('div', {
         classe: 'coluna',
+        dataset: { etapa: etapa.id },
         // A cor da etapa vale para a coluna inteira: faixa, contador e o
         // botão de avançar das fichas lá dentro.
         style: `--cor-etapa:${etapa.cor}`,
@@ -178,10 +180,7 @@ export function telaContratacoes(sessao) {
     const anterior = ESTAGIOS[indice - 1]
     const proximo = ESTAGIOS[indice + 1]
 
-    return el('div', {
-      classe: 'ficha',
-      onclick: () => abrirFormulario(frete),
-    }, [
+    const ficha = el('div', { classe: 'ficha' }, [
       el('div', { classe: 'ficha__topo' }, [
         el('span', { classe: 'ficha__cliente', texto: frete.cliente || 'Sem cliente' }),
         // "Normal" não ganha etiqueta: marcar tudo faria as cargas
@@ -248,6 +247,13 @@ export function telaContratacoes(sessao) {
           : null,
       ]),
     ])
+
+    tornarArrastavel(ficha, frete, {
+      aoSoltar: (arrastado, destino) => salvar(movido(arrastado, destino)),
+      aoClicar: () => abrirFormulario(frete),
+    })
+
+    return ficha
   }
 
   // ---------- Formulário ----------
