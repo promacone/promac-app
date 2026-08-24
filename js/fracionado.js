@@ -22,8 +22,8 @@ export const CUBAGEM_KG_POR_M3 = 300
  * As três frentes de venda do fracionado.
  *
  * Cada região carrega o caminhão de referência do rateio e a viagem
- * típica. Sul/Sudeste roda distâncias curtas com truck; Norte/Nordeste é
- * carreta e estrada longa — por isso o preço por quilo muda tanto.
+ * típica. A referência é a carreta de 25 t em todas — o que muda entre
+ * as regiões é a distância típica e o mínimo por despacho.
  *
  * `capacidadeKg` é quanto o caminhão de referência leva; `distanciaKm`
  * é a viagem típica da região — usada só enquanto a rota real não foi
@@ -36,7 +36,7 @@ export const REGIOES = [
     titulo: 'Sul e Sudeste',
     sigla: 'S/SE',
     ufs: ['PR', 'SC', 'RS', 'SP', 'RJ', 'MG', 'ES'],
-    caminhao: { tipo: 'geral', eixos: 3, capacidadeKg: 14000 },
+    caminhao: { tipo: 'geral', eixos: 5, capacidadeKg: 25000 },
     distanciaKm: 600,
     minimo: 90,
   },
