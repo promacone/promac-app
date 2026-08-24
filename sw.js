@@ -8,7 +8,7 @@
 // sem sinal, entrega a última que funcionou. Assim o vendedor no meio da
 // estrada ainda abre o app e cota um frete, mesmo sem 4G.
 
-const CACHE = 'promac-20260824091453'
+const CACHE = 'promac-20260824092050'
 
 // O que vale a pena guardar para funcionar offline.
 const ESSENCIAIS = [
@@ -63,6 +63,20 @@ self.addEventListener('fetch', (evento) => {
         }
         return resposta
       })
-      .catch(() => caches.match(pedido).then((guardada) => guardada || caches.match('./index.html')))
+      .catch(async () => {
+        const guardada = await caches.match(pedido)
+        if (guardada) return guardada
+
+        // Só a navegação cai de volta na página inicial. Fazer isso com
+        // um arquivo de estilo ou de código entregaria HTML no lugar
+        // deles, e a tela apareceria crua — sem cor, sem layout, com
+        // todas as telas empilhadas.
+        if (pedido.mode === 'navigate') {
+          const inicial = await caches.match('./index.html')
+          if (inicial) return inicial
+        }
+
+        return Response.error()
+      })
   )
 })

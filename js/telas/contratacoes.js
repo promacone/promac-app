@@ -5,10 +5,10 @@
 
 import {
   bd, doc, setDoc, deleteDoc, collection, getDocs,
-} from '../firebase.js?v=20260824091453'
-import { reais } from '../frete.js?v=20260824091453'
-import { el, render, campo, mostrarAviso, seletor } from '../ui.js?v=20260824091453'
-import { tornarArrastavel } from '../arrastar.js?v=20260824091453'
+} from '../firebase.js?v=20260824092050'
+import { reais } from '../frete.js?v=20260824092050'
+import { el, render, campo, mostrarAviso, seletor } from '../ui.js?v=20260824092050'
+import { tornarArrastavel } from '../arrastar.js?v=20260824092050'
 
 export const ESTAGIOS = [
   { id: 'coleta', titulo: 'Coleta', cor: '#737d8c' },
