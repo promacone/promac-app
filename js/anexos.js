@@ -36,7 +36,7 @@ async function storage() {
   const [{ getStorage, ref, uploadBytes, getDownloadURL, deleteObject }, { app }] =
     await Promise.all([
       import('https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js'),
-      import('./firebase.js?v=20260824162354'),
+      import('./firebase.js?v=20260824163012'),
     ])
 
   const bd = getStorage(app)
@@ -65,7 +65,7 @@ export async function storageDisponivel() {
   if (bucketExiste !== null) return bucketExiste
 
   try {
-    const { app } = await import('./firebase.js?v=20260824162354')
+    const { app } = await import('./firebase.js?v=20260824163012')
     const balde = app.options.storageBucket
     if (!balde) { bucketExiste = false; return bucketExiste }
 

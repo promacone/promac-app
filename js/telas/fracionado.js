@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824162354'
+} from '../frete.js?v=20260824163012'
 import {
-  REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3,
-} from '../fracionado.js?v=20260824162354'
-import { rotaComMemoria } from '../qualp.js?v=20260824162354'
-import { campoDeCidade } from '../cidades.js?v=20260824162354'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824162354'
+  REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
+} from '../fracionado.js?v=20260824163012'
+import { rotaComMemoria } from '../qualp.js?v=20260824163012'
+import { campoDeCidade } from '../cidades.js?v=20260824163012'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824163012'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -54,6 +54,16 @@ export function telaFreteFracionado({ parametros }) {
 
   const areaRegioes = el('div', { classe: 'tabelas-preco' })
   const areaVolumes = el('div', { style: 'display:grid;gap:10px' })
+  const areaAjudaVolumes = el('p', { classe: 'campo__ajuda' })
+
+  /** A explicação acompanha a região: baú real numa, cubagem na outra. */
+  function atualizarAjudaVolumes() {
+    const r = regiao(estado.regiao)
+    const bau = capacidadeM3(r.caminhao)
+    areaAjudaVolumes.textContent = bau
+      ? `Medidas em metros — 60 cm é 0,60. A carreta de referência leva ${r.caminhao.capacidadeKg / 1000} t em ${m3(bau)} m³ (${m3(r.caminhao.bau.comprimento)} × ${m3(r.caminhao.bau.largura)} × ${m3(r.caminhao.bau.altura)}). A carga paga a fração que ocupar — em peso ou em espaço, o que for maior.`
+      : `Medidas em metros — 60 cm é 0,60. Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`
+  }
   const areaTabelas = el('div', { classe: 'tabelas-preco' })
   const areaDestino = el('div')
   const areaResumo = el('div')
@@ -91,26 +101,40 @@ export function telaFreteFracionado({ parametros }) {
       coeficientes,
     })
 
+    const temBau = !!r.capacidadeM3
+
     render(areaResumo,
       el('div', { classe: 'secao__titulo', texto: `Fracionado — ${r.regiao.titulo} — Tabela ${estado.tabela.toUpperCase()}` }),
 
       linha('Volumes', `${carga.quantidade} · ${m3(carga.volumeM3)} m³`),
       linha('Peso da balança', `${Math.round(carga.pesoKg).toLocaleString('pt-BR')} kg`),
-      linha(`Peso cubado (${CUBAGEM_KG_POR_M3} kg/m³)`, `${Math.round(r.peso.cubado).toLocaleString('pt-BR')} kg`),
-      linha('Peso considerado', `${Math.round(r.peso.cobravel).toLocaleString('pt-BR')} kg`, r.peso.cubou),
 
-      linha(`Caminhão cheio (${r.regiao.caminhao.capacidadeKg / 1000} t, ${r.distanciaKm} km)`,
+      // Com o baú conhecido, o rateio é contra a carreta real: mostra a
+      // ocupação nas duas dimensões e qual delas mandou no preço.
+      temBau ? linha('Ocupação do baú (espaço)', percentual(r.fatiaEspaco), r.cobrouPorEspaco) : null,
+      temBau ? linha('Ocupação em peso (25 t)', percentual(r.fatiaPeso), !r.cobrouPorEspaco) : null,
+
+      !temBau ? linha(`Peso cubado (${CUBAGEM_KG_POR_M3} kg/m³)`, `${Math.round(r.peso.cubado).toLocaleString('pt-BR')} kg`) : null,
+      !temBau ? linha('Peso considerado', `${Math.round(r.peso.cobravel).toLocaleString('pt-BR')} kg`, r.peso.cubou) : null,
+
+      linha(
+        temBau
+          ? `Carreta cheia (${r.regiao.caminhao.capacidadeKg / 1000} t · ${m3(r.capacidadeM3)} m³ · ${r.distanciaKm} km)`
+          : `Caminhão cheio (${r.regiao.caminhao.capacidadeKg / 1000} t, ${r.distanciaKm} km)`,
         reais(r.freteCaminhaoCheio)),
-      linha('Fatia da carga', percentual(r.fatia)),
+      linha('Valor por km da carreta', `${reais(r.valorPorKm)}/km`),
+      linha('Fatia cobrada da carga', percentual(r.fatia)),
       linha(r.usouMinimo ? `Frete-peso (mínimo da região)` : 'Frete-peso', reais(r.fretePeso), true),
       linha(`GRIS (${percentual(parametros.gris)} da NF-e)`, reais(r.gris)),
       linha('Taxas fixas', reais(r.taxas)),
 
-      r.peso.cubou
+      r.cobrouPorEspaco && (temBau ? r.fatiaEspaco > 0 : true)
         ? el('p', {
             classe: 'campo__ajuda',
             style: 'margin-top:10px',
-            texto: 'A carga é leve para o espaço que ocupa: a cobrança foi pelo volume, não pela balança.',
+            texto: temBau
+              ? 'A carga esgota o espaço antes do peso: a cobrança foi pela área do baú que ela ocupa.'
+              : 'A carga é leve para o espaço que ocupa: a cobrança foi pelo volume, não pela balança.',
           })
         : null,
 
@@ -238,6 +262,7 @@ export function telaFreteFracionado({ parametros }) {
           estado.destino = ''
           estado.rota = null
           desenharRegioes()
+          atualizarAjudaVolumes()
           desenharDestino()
           desenharRota()
         },
@@ -345,10 +370,7 @@ export function telaFreteFracionado({ parametros }) {
 
     el('div', { classe: 'cartao' }, [
       el('div', { classe: 'secao__titulo', texto: 'Volumes da carga' }),
-      el('p', {
-        classe: 'campo__ajuda',
-        texto: `Medidas em metros — 60 cm é 0,60. Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`,
-      }),
+      areaAjudaVolumes,
       areaVolumes,
     ]),
 
@@ -369,6 +391,7 @@ export function telaFreteFracionado({ parametros }) {
   ])
 
   desenharRegioes()
+  atualizarAjudaVolumes()
   desenharVolumes()
   desenharDestino()
   desenharTabelas()

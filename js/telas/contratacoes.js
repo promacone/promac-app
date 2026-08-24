@@ -5,11 +5,11 @@
 
 import {
   bd, doc, setDoc, updateDoc, deleteDoc, collection, getDocs, arrayUnion, arrayRemove,
-} from '../firebase.js?v=20260824162354'
-import { reais } from '../frete.js?v=20260824162354'
-import { el, render, campo, linha, mostrarAviso, seletor } from '../ui.js?v=20260824162354'
-import { tornarArrastavel } from '../arrastar.js?v=20260824162354'
-import { enviarAnexo, apagarAnexo, erroDeAnexo, tamanhoLegivel, storageDisponivel } from '../anexos.js?v=20260824162354'
+} from '../firebase.js?v=20260824163012'
+import { reais } from '../frete.js?v=20260824163012'
+import { el, render, campo, linha, mostrarAviso, seletor } from '../ui.js?v=20260824163012'
+import { tornarArrastavel } from '../arrastar.js?v=20260824163012'
+import { enviarAnexo, apagarAnexo, erroDeAnexo, tamanhoLegivel, storageDisponivel } from '../anexos.js?v=20260824163012'
 
 /** Os fretes de verdade, no Firestore. */
 export function firestore() {

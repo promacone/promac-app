@@ -36,7 +36,14 @@ export const REGIOES = [
     titulo: 'Sul e Sudeste',
     sigla: 'S/SE',
     ufs: ['PR', 'SC', 'RS', 'SP', 'RJ', 'MG', 'ES'],
-    caminhao: { tipo: 'geral', eixos: 5, capacidadeKg: 25000 },
+    // O baú é o da carreta que a PROMAC contrata: 15 m de comprimento,
+    // 2,40 de largura, 2,80 de altura — 100,8 m³ para 25 toneladas.
+    // Com o baú declarado, a fatia da carga é medida contra o espaço
+    // real, não contra a cubagem genérica de 300 kg/m³.
+    caminhao: {
+      tipo: 'geral', eixos: 5, capacidadeKg: 25000,
+      bau: { comprimento: 15, largura: 2.4, altura: 2.8 },
+    },
     distanciaKm: 600,
     minimo: 90,
   },
@@ -60,6 +67,13 @@ export const REGIOES = [
     minimo: 220,
   },
 ]
+
+/** Espaço útil do baú, em m³ — ou null se a região não o declarou. */
+export function capacidadeM3(caminhao) {
+  const b = caminhao?.bau
+  if (!b) return null
+  return b.comprimento * b.largura * b.altura
+}
 
 export function regiao(id) {
   return REGIOES.find((r) => r.id === id) || REGIOES[0]
@@ -104,6 +118,7 @@ export function calcularFracionado({
 }) {
   const r = regiao(regiaoId)
   const peso = pesoCobravel({ pesoKg, volumeM3 })
+  const espacoDoBau = capacidadeM3(r.caminhao)
 
   // Sem rota buscada, a viagem típica da região segura a estimativa.
   const km = distanciaKm > 0 ? distanciaKm : r.distanciaKm
@@ -123,9 +138,25 @@ export function calcularFracionado({
   // carga paga sua fração da estrada, como paga sua fração do diesel.
   const cheioComPedagio = cheio.total + Math.max(0, pedagioCaminhao)
 
-  const fatia = r.caminhao.capacidadeKg > 0
-    ? peso.cobravel / r.caminhao.capacidadeKg
-    : 0
+  // A fatia que a carga ocupa do caminhão.
+  //
+  // Com o baú declarado, mede-se contra o caminhão real: a carga esgota
+  // ou o peso (25 t) ou o espaço (100,8 m³), e paga pela dimensão que
+  // esgota primeiro. É o que acontece na prática — uma carreta lotada de
+  // isopor viaja leve, mas ninguém mais embarca nela.
+  //
+  // Sem o baú, vale a cubagem comercial de pesoCobravel (300 kg/m³).
+  let fatiaPeso = null
+  let fatiaEspaco = null
+  let fatia
+
+  if (espacoDoBau) {
+    fatiaPeso = r.caminhao.capacidadeKg > 0 ? peso.real / r.caminhao.capacidadeKg : 0
+    fatiaEspaco = Math.max(0, volumeM3) / espacoDoBau
+    fatia = Math.max(fatiaPeso, fatiaEspaco)
+  } else {
+    fatia = r.caminhao.capacidadeKg > 0 ? peso.cobravel / r.caminhao.capacidadeKg : 0
+  }
 
   const proporcional = cheioComPedagio * fatia
   const fretePeso = Math.max(proporcional, peso.cobravel > 0 ? r.minimo : 0)
@@ -139,8 +170,13 @@ export function calcularFracionado({
     distanciaKm: km,
     usouViagemTipica: !(distanciaKm > 0),
     peso,
+    capacidadeM3: espacoDoBau,
     freteCaminhaoCheio: cheioComPedagio,
+    valorPorKm: km > 0 ? cheioComPedagio / km : 0,
     fatia,
+    fatiaPeso,
+    fatiaEspaco,
+    cobrouPorEspaco: espacoDoBau ? fatiaEspaco > fatiaPeso : peso.cubou,
     fretePeso,
     usouMinimo,
     gris,
