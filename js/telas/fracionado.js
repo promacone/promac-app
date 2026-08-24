@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824163612'
+} from '../frete.js?v=20260824163809'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260824163612'
-import { rotaComMemoria } from '../qualp.js?v=20260824163612'
-import { campoDeCidade } from '../cidades.js?v=20260824163612'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824163612'
+} from '../fracionado.js?v=20260824163809'
+import { rotaComMemoria } from '../qualp.js?v=20260824163809'
+import { campoDeCidade } from '../cidades.js?v=20260824163809'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824163809'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -36,19 +36,25 @@ export function telaFreteFracionado({ parametros }) {
   }
 
   /**
-   * Medidas são digitadas em centímetros, sempre.
+   * Medidas em metros, do jeito que o Pedro pediu para ler:
    *
-   * A primeira versão pedia metros e o Pedro digitou centímetros — 170
-   * virou 170 m. A segunda tentava adivinhar pela grandeza do número, e
-   * uma caixa de 17 cm virou 17 m. Adivinhar unidade não funciona: ou o
-   * palpite erra para um lado, ou para o outro.
+   *   "1.80" e "1,80"  →  um metro e oitenta
+   *   "0,80"           →  oitenta centímetros
+   *   "180"            →  centímetros (nenhuma carga tem 180 m)
    *
-   * Centímetro é a unidade em que o setor fala ("um pallet de 120 por
-   * 100"), então o campo é isso e pronto. A conversão aparece escrita no
-   * subtotal do volume — quem digitar errado vê na hora.
+   * Ponto e vírgula valem os dois como separador decimal. Não dá para
+   * usar o numero() de frete.js aqui: ele trata ponto como separador de
+   * milhar, e "1.80" viraria 180.
+   *
+   * O corte dos 20: acima disso não existe medida de carga em metros — a
+   * carreta inteira tem 15 —, então o número só pode ser centímetros.
+   * A leitura aparece escrita no subtotal do volume, para conferência.
    */
   function medidaEmMetros(valor) {
-    return numero(valor) / 100
+    const texto = String(valor ?? '').trim().replace(',', '.')
+    const n = parseFloat(texto)
+    if (!Number.isFinite(n) || n < 0) return 0
+    return n > 20 ? n / 100 : n
   }
 
   /** Soma m³ e kg de todos os volumes digitados. */
@@ -77,8 +83,8 @@ export function telaFreteFracionado({ parametros }) {
     const r = regiao(estado.regiao)
     const bau = capacidadeM3(r.caminhao)
     areaAjudaVolumes.textContent = bau
-      ? `Medidas em centímetros: 1,20 m é 120. A carreta de referência leva ${r.caminhao.capacidadeKg / 1000} t em ${m3(bau)} m³ (15 × 2,40 × 2,80 m). A carga paga a fração que ocupar — em peso ou em espaço, o que for maior.`
-      : `Medidas em centímetros: 1,20 m é 120. Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`
+      ? `Medidas em metros: 1,80 é um metro e oitenta; 0,80 é oitenta centímetros (180 também vale — números grandes são lidos como centímetros). A carreta de referência leva ${r.caminhao.capacidadeKg / 1000} t em ${m3(bau)} m³ (15 × 2,40 × 2,80 m). A carga paga a fração que ocupar — em peso ou em espaço, o que for maior.`
+      : `Medidas em metros: 1,80 é um metro e oitenta; 0,80 é oitenta centímetros (180 também vale — números grandes são lidos como centímetros). Cada m³ conta como ${CUBAGEM_KG_POR_M3} kg; a cobrança vale o maior entre balança e cubagem.`
   }
   const areaTabelas = el('div', { classe: 'tabelas-preco' })
   const areaDestino = el('div')
@@ -267,9 +273,9 @@ export function telaFreteFracionado({ parametros }) {
       ]),
 
       el('div', { classe: 'volume__medidas' }, [
-        medida('Compr. (cm)', 'comprimento', '120'),
-        medida('Larg. (cm)', 'largura', '100'),
-        medida('Alt. (cm)', 'altura', '110'),
+        medida('Compr. (m)', 'comprimento', '1,20'),
+        medida('Larg. (m)', 'largura', '1,00'),
+        medida('Alt. (m)', 'altura', '1,10'),
       ]),
 
       el('div', { classe: 'volume__linha2' }, [
