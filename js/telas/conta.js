@@ -3,9 +3,9 @@
 import {
   auth, signOut, deleteUser, reauthenticateWithCredential, EmailAuthProvider,
   mensagemDeErro,
-} from '../firebase.js?v=20260824132726'
-import { removerMembro } from '../equipe.js?v=20260824132726'
-import { el, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824132726'
+} from '../firebase.js?v=20260824134355'
+import { removerMembro } from '../equipe.js?v=20260824134355'
+import { el, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824134355'
 
 export function telaConta(sessao) {
   const senhaEl = el('input', {
@@ -29,7 +29,7 @@ export function telaConta(sessao) {
     el('div', { classe: 'cartao' }, [
       el('button', {
         classe: 'botao',
-        style: 'background:transparent;color:var(--azul-claro);border:1.5px solid var(--azul-claro)',
+        style: 'background:transparent;color:var(--azul-vivo);border:1.5px solid var(--azul-vivo)',
         texto: 'Sair',
         onclick: () => signOut(auth),
       }),

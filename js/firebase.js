@@ -35,6 +35,7 @@ import {
   collection,
   getDocs,
   serverTimestamp,
+  arrayUnion,
 } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js'
 
 const configuracao = {
@@ -156,6 +157,9 @@ export {
   collection,
   getDocs,
   serverTimestamp,
+  // Acrescenta um item a uma lista sem reescrever o resto. Duas pessoas
+  // anotando no mesmo frete ao mesmo tempo não apagam a nota da outra.
+  arrayUnion,
 }
 
 /**

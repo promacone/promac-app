@@ -1,11 +1,11 @@
 // Onde o administrador convida, desliga e apaga quem usa o app — e ajusta
 // os percentuais comerciais da empresa.
 
-import { auth, sendPasswordResetEmail, mensagemDeErro, abrirAcessoParaConvidado } from '../firebase.js?v=20260824132726'
+import { auth, sendPasswordResetEmail, mensagemDeErro, abrirAcessoParaConvidado } from '../firebase.js?v=20260824134355'
 import {
   listarEquipe, convidar, definirAtivo, removerMembro, pareceEmail, chave,
-} from '../equipe.js?v=20260824132726'
-import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824132726'
+} from '../equipe.js?v=20260824134355'
+import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824134355'
 
 export function telaEquipe(sessao) {
   const raiz = el('div', { style: 'display:grid;gap:14px' })
@@ -50,7 +50,7 @@ export function telaEquipe(sessao) {
         el('div', { style: 'font-weight:600', texto: membro.nome }),
         el('div', { classe: 'campo__ajuda', texto: membro.email }),
         membro.papel === 'master'
-          ? el('div', { style: 'color:var(--azul-claro);font-size:12px', texto: 'Administrador' })
+          ? el('div', { style: 'color:var(--azul-vivo);font-size:12px', texto: 'Administrador' })
           : null,
       ]),
       etiqueta(membro),
@@ -245,7 +245,7 @@ export function telaEquipe(sessao) {
         el('div', { style: 'font-weight:600', texto: email }),
         el('div', { classe: 'campo__ajuda', style: 'margin-top:8px', texto: 'Senha provisória' }),
         el('div', {
-          style: 'font-size:26px;font-weight:800;letter-spacing:3px;font-family:ui-monospace,monospace;color:var(--azul-claro)',
+          style: 'font-size:26px;font-weight:800;letter-spacing:3px;font-family:ui-monospace,monospace;color:var(--azul-vivo)',
           texto: senha,
         }),
       ]),

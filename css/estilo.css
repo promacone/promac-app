@@ -936,3 +936,132 @@ body.arrastando .ficha { cursor: grabbing; }
 @media (hover: none) {
   .ficha__apagar { color: #97a1b5; }
 }
+
+/* ---------- Ficha da carga ---------- */
+
+.ficha-fase {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--raio);
+  background: var(--superficie-alta);
+  /* A faixa de cor repete a da coluna: a fase se reconhece de relance,
+     sem precisar ler. */
+  border-left: 4px solid var(--cor-etapa);
+  border-top: 1px solid var(--borda);
+  border-right: 1px solid var(--borda);
+  border-bottom: 1px solid var(--borda);
+}
+
+.ficha-fase__nome {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+}
+
+.ficha-fase__acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.ficha-texto {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--texto-medio);
+  /* Respeita as quebras de linha que a pessoa digitou. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+
+.ficha-contato {
+  color: var(--azul-vivo);
+  font-weight: 600;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.ficha-contato:hover { text-decoration: underline; }
+
+/* ---------- Diário de acompanhamento ---------- */
+
+.diario {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borda);
+}
+
+.diario__item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--raio-pequeno);
+  background: var(--superficie-alta);
+  border-left: 3px solid var(--cor-etapa);
+}
+
+.diario__topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.diario__fase {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cor-etapa);
+  /* A cor da etapa "Em Rota" é escura demais para ler no fundo escuro. */
+  filter: brightness(1.6);
+}
+
+.diario__quando {
+  font-size: 11.5px;
+  color: var(--texto-fraco);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.diario__autor { font-size: 11.5px; color: var(--texto-fraco); }
+
+/* ---------- Última anotação, no cartão do quadro ---------- */
+
+.ficha__nota {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  background: #eef2f8;
+  border-left: 3px solid #b9c4d6;
+}
+
+.ficha__nota-texto {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #3d485f;
+  /* Duas linhas bastam para dar o recado; o resto está dentro da ficha. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ficha__nota-quando { font-size: 10.5px; color: #7b8699; }
+
+/* Contadores do topo do quadro. */
+.contador { padding: 14px; }
+
+.contador__numero {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  margin: 2px 0 1px;
+}

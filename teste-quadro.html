@@ -34,20 +34,35 @@ const fretes = [
     motoristaNome: 'João da Silva', placa: 'ABC1D23',
     motoristaTelefone: '(42) 99999-8888',
     previsaoEntrega: Date.now() + 172800000, criadoEm: Date.now() - 1000,
+    observacoes: 'Carga baixa, 2,50 de carroceria livre.',
+    anotacoes: [
+      {
+        id: 'n1', texto: 'Motorista carregou às 8h, seguiu pela BR-376.',
+        estagio: 'motoristaContratado', autor: 'Pedro Diaz', em: Date.now() - 7200000,
+      },
+    ],
   },
 ]
 
 const repositorio = {
   async listar() { return fretes.map((f) => ({ ...f })) },
   async salvar(frete) {
+    // Igual ao Firestore: salvar preserva o diário em vez de sobrescrevê-lo.
+    const { anotacoes, ...campos } = frete
     const i = fretes.findIndex((f) => f.id === frete.id)
-    if (i >= 0) fretes[i] = frete
-    else fretes.push(frete)
+    if (i >= 0) fretes[i] = { ...fretes[i], ...campos }
+    else fretes.push({ ...campos, anotacoes: anotacoes || [] })
     window.ultimoSalvo = frete
   },
   async apagar(id) {
     const i = fretes.findIndex((f) => f.id === id)
     if (i >= 0) fretes.splice(i, 1)
+  },
+  async anotar(id, entrada) {
+    const frete = fretes.find((f) => f.id === id)
+    if (!frete) throw new Error('frete não existe')
+    frete.anotacoes = [...(frete.anotacoes || []), entrada]
+    window.ultimaAnotacao = entrada
   },
 }
 
