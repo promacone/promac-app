@@ -443,3 +443,12 @@ select {
   accent-color: var(--azul-claro);
   cursor: pointer;
 }
+
+.total__rotulo { font-weight: 600; }
+
+.total__secundario {
+  font-size: 13px;
+  color: rgba(238, 241, 247, 0.6);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}

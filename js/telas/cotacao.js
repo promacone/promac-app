@@ -81,8 +81,9 @@ export function telaCotacao({ parametros }) {
       linha(`GRIS (${percentual(parametros.gris)} da NF-e)`, reais(r.gris)),
       linha(`Imposto (${percentual(parametros.imposto)})`, reais(r.imposto)),
       linha(`Sua margem (${percentual(parametrosAtuais().margem)})`, reais(r.margem)),
-      linha('Frete', reais(r.total), true),
+      linha('Venda sem pedágio', reais(r.total), true),
       linha(`Pedágio (${estado.eixos} eixos)`, reais(r.pedagio)),
+      linha('Venda com pedágio', reais(r.totalComPedagio), true),
       el('p', {
         classe: 'campo__ajuda',
         style: 'margin-top:10px',
@@ -92,7 +93,13 @@ export function telaCotacao({ parametros }) {
 
     render(areaTotal,
       el('div', { classe: 'total' }, [
-        el('span', { texto: 'Total ao cliente' }),
+        el('div', {}, [
+          el('div', { classe: 'total__rotulo', texto: 'Total ao cliente' }),
+          el('div', {
+            classe: 'total__secundario',
+            texto: `Sem o pedágio: ${reais(r.total)}`,
+          }),
+        ]),
         el('span', { classe: 'total__valor', texto: reais(r.totalComPedagio) }),
       ]),
     )
