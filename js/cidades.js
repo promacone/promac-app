@@ -5,7 +5,7 @@
 // Paulo" sem acento ou um "Brasilia" digitado errado fazem a consulta de
 // rota falhar depois de já ter gasto um crédito da Qualp.
 
-import { el } from './ui.js?v=20260824140800'
+import { el } from './ui.js?v=20260824143156'
 
 let cidades = null
 let carregando = null
@@ -20,7 +20,7 @@ async function carregar() {
   if (cidades) return cidades
   if (carregando) return carregando
 
-  carregando = fetch('dados/cidades.json?v=20260824140800')
+  carregando = fetch('dados/cidades.json?v=20260824143156')
     .then((r) => r.json())
     .then((lista) => {
       cidades = lista.map(([nome, uf, busca]) => ({ nome, uf, busca }))

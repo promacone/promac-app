@@ -63,7 +63,12 @@ O Blaze não tem teto automático. O alerta avisa antes de virar problema.
 4. Clique em **Anexar canhoto ou foto** e escolha uma imagem
 
 Se aparecer "O espaço de arquivos ainda não foi ativado no Firebase",
-algum passo acima ficou pela metade.
+o passo 2 ficou pela metade.
+
+Se aparecer "Você não tem permissão para anexar", as regras do passo 3
+não estão valendo. Confira que você colou a versão que identifica a
+pessoa pelo e-mail e pelo campo `ativo` — a mesma lógica das regras do
+banco de dados.
 
 ## O que o app faz com as fotos
 

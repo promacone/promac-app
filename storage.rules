@@ -1,30 +1,42 @@
 rules_version = '2';
 
-// Regras do espaço de arquivos (canhotos e fotos de entrega).
+// Regras do espaco de arquivos (canhotos e fotos de entrega).
 //
-// Mesma ideia das regras do Firestore: quem manda é o servidor, não o
-// aplicativo. Um link de download do Firebase é longo e difícil de
-// adivinhar, mas "difícil de adivinhar" não é proteção — sem estas
-// regras, qualquer pessoa com o endereço do projeto poderia listar e
-// baixar todos os canhotos da empresa.
+// Espelham as regras do Firestore de proposito: quem trabalha aqui e
+// definido num lugar so. A pessoa e identificada pelo e-mail confirmado
+// no login, que e a chave dos documentos em `equipe`, e precisa estar
+// com `ativo` ligado.
+//
+// Toda a equipe anexa e ve os anexos - nao ha distincao de cargo aqui.
+// Quem entrega e quem confere o canhoto raramente e a mesma pessoa.
+//
+// O que nao se abre: acesso sem login. O link de download do Firebase e
+// comprido e dificil de adivinhar, mas isso nao e protecao. Sem estas
+// regras, qualquer um com o endereco do projeto baixaria todos os
+// canhotos da empresa.
+//
+// Os comentarios estao sem acento porque o editor do console embaralha
+// caracteres acentuados ao colar.
 
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Só entra quem está na lista `equipe` do Firestore e já foi liberado.
-    // A checagem é a mesma da base de dados, para não existirem dois
-    // conceitos diferentes de "quem trabalha aqui".
+    function emailDoUsuario() {
+      return request.auth.token.email.lower();
+    }
+
     function autorizado() {
       return request.auth != null
-        && firestore.exists(/databases/(default)/documents/equipe/$(request.auth.uid))
-        && firestore.get(/databases/(default)/documents/equipe/$(request.auth.uid)).data.liberado == true;
+        && request.auth.token.email != null
+        && firestore.exists(/databases/(default)/documents/equipe/$(emailDoUsuario()))
+        && firestore.get(/databases/(default)/documents/equipe/$(emailDoUsuario())).data.ativo == true;
     }
 
     match /viagens/{freteId}/{arquivo} {
       allow read: if autorizado();
 
-      // 12 MB é o teto do app; repetir aqui evita que alguém contorne a
-      // tela e encha o espaço com um vídeo.
+      // 12 MB e o teto do app; repetir aqui evita que alguem contorne a
+      // tela e encha o espaco com video.
       allow write: if autorizado()
         && request.resource.size < 12 * 1024 * 1024
         && (request.resource.contentType.matches('image/.*')
