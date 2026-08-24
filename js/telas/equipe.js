@@ -1,7 +1,7 @@
 // Onde o administrador convida, desliga e apaga quem usa o app — e ajusta
 // os percentuais comerciais da empresa.
 
-import { auth, sendPasswordResetEmail, mensagemDeErro } from '../firebase.js'
+import { auth, sendPasswordResetEmail, mensagemDeErro, abrirAcessoParaConvidado } from '../firebase.js'
 import {
   listarEquipe, convidar, definirAtivo, removerMembro, pareceEmail, chave,
 } from '../equipe.js'
@@ -89,7 +89,7 @@ export function telaEquipe(sessao) {
                   texto: 'Reenviar e-mail de convite',
                   onclick: (e) => comCarregamento(e.target, async () => {
                     try {
-                      await sendPasswordResetEmail(auth, membro.email)
+                      await abrirAcessoParaConvidado(membro.email)
                       mostrarAviso(avisoAcoes, `E-mail reenviado para ${membro.email}.`, 'ok')
                     } catch (erro) {
                       mostrarAviso(avisoAcoes, mensagemDeErro(erro))
@@ -170,15 +170,19 @@ export function telaEquipe(sessao) {
           return
         }
 
-        // O acesso já está na lista. O e-mail é convite para a pessoa
-        // criar a senha — se falhar, dá para reenviar tocando nela.
-        // (Na web não criamos a conta dela de antemão: a pessoa cria no
-        // primeiro acesso, pela tela "Criar minha conta".)
-        mostrarAviso(
-          avisoConvite,
-          `Acesso liberado. Avise ${email} para abrir o app e tocar em "Criar minha conta" usando esse e-mail.`,
-          'ok'
-        )
+        // O acesso já está na lista. Se o e-mail falhar, o convite
+        // continua valendo: dá para reenviar tocando na pessoa, ou ela
+        // mesma se resolve por "Esqueci minha senha".
+        try {
+          await abrirAcessoParaConvidado(chave(email))
+          mostrarAviso(avisoConvite, `Convite enviado para ${email}.`, 'ok')
+        } catch {
+          mostrarAviso(
+            avisoConvite,
+            `Acesso liberado, mas o e-mail não saiu. Toque na pessoa na lista para reenviar.`,
+            'atencao'
+          )
+        }
         conviteEmail.value = ''
         conviteNome.value = ''
         carregar()

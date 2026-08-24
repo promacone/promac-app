@@ -8,7 +8,7 @@
 // O token da Qualp, esse sim secreto, nunca entra aqui: ele fica num
 // intermediário do lado do servidor.
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js'
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js'
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -66,6 +66,42 @@ export function lembrarNesteAparelho(lembrar) {
     auth,
     lembrar ? browserLocalPersistence : browserSessionPersistence
   ).catch(() => {})
+}
+
+/**
+ * Cria a conta de quem foi convidado e manda o e-mail para essa pessoa
+ * escolher a própria senha.
+ *
+ * A senha provisória é sorteada e descartada em seguida: ninguém a
+ * digita, ninguém a recebe, e ela deixa de valer assim que a pessoa
+ * define a dela pelo link do e-mail.
+ *
+ * A conta é criada por uma segunda conexão com o Firebase. Pela conexão
+ * principal, criar usuário trocaria a sessão — o administrador seria
+ * desconectado e entraria como o próprio convidado.
+ */
+export async function abrirAcessoParaConvidado(email) {
+  const paralelo = getApps().find((a) => a.name === 'convites')
+    || initializeApp(configuracao, 'convites')
+  const authParalelo = getAuth(paralelo)
+
+  try {
+    await createUserWithEmailAndPassword(authParalelo, email, senhaProvisoria())
+  } catch (erro) {
+    // Conta que já existe não é problema: a pessoa pode ter sido
+    // convidada antes. O e-mail de senha vai do mesmo jeito.
+    if (erro?.code !== 'auth/email-already-in-use') throw erro
+  }
+
+  await signOut(authParalelo).catch(() => {})
+  await sendPasswordResetEmail(auth, email)
+}
+
+/** Senha descartável, só para o Firebase aceitar criar a conta. */
+function senhaProvisoria() {
+  const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%'
+  const sorteio = crypto.getRandomValues(new Uint32Array(32))
+  return Array.from(sorteio, (n) => alfabeto[n % alfabeto.length]).join('')
 }
 
 export {
