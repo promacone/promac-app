@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824164730'
+} from '../frete.js?v=20260824165253'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260824164730'
-import { rotaComMemoria } from '../qualp.js?v=20260824164730'
-import { campoDeCidade } from '../cidades.js?v=20260824164730'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824164730'
+} from '../fracionado.js?v=20260824165253'
+import { rotaComMemoria } from '../qualp.js?v=20260824165253'
+import { campoDeCidade } from '../cidades.js?v=20260824165253'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824165253'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -156,8 +156,11 @@ export function telaFreteFracionado({ parametros }) {
         reais(r.freteCaminhaoCheio)),
       linha(`Valor por km (${nomeDoVeiculo(r.regiao).toLowerCase()})`, `${reais(r.valorPorKm)}/km`),
       linha('Fatia cobrada da carga', percentual(r.fatia)),
-      r.fator > 1
-        ? linha('Fator do fracionado', `× ${String(r.fator).replace('.', ',')}`)
+      r.embarque > 0
+        ? linha(`Rateio do espaço${r.fator > 1 ? ` (× ${String(r.fator).replace('.', ',')})` : ''}`, reais(r.rateio))
+        : null,
+      r.embarque > 0
+        ? linha('Embarque (coleta e manuseio)', reais(r.embarque))
         : null,
       linha(r.usouMinimo ? `Frete-peso (mínimo da região)` : 'Frete-peso', reais(r.fretePeso), true),
       linha(`GRIS (${percentual(parametros.gris)} da NF-e)`, reais(r.gris)),

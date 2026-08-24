@@ -49,11 +49,18 @@ export const REGIOES = [
       nome: 'Truck', tipo: 'geral', eixos: 3, capacidadeKg: 14000,
       bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
     },
-    // O rateio seco supõe a carreta 100% cheia e de graça para operar.
-    // O fracionado real tem coleta, manuseio no terminal e espaço que
-    // sobra vazio — o mercado cobra em torno de 3x o rateio para cobrir
-    // isso. É o número a calibrar com os fretes que a PROMAC já fechou.
-    fatorFracionado: 3,
+    // O preço do fracionado tem duas partes, e a forma importa:
+    //
+    //   frete = embarque fixo + rateio x fator
+    //
+    // O embarque (coleta, manuseio, emissão) custa parecido para 30 kg
+    // ou 3 t — é ele que impede a carga pequena de sair de graça. O
+    // fator sobre o rateio é baixo, cobrindo só o espaço que viaja
+    // vazio — é isso que impede a carga grande de explodir. Um fator
+    // único fazendo os dois papéis (a versão anterior, x3) errava nas
+    // duas pontas ao mesmo tempo.
+    embarque: 100,
+    fatorFracionado: 1.3,
     distanciaKm: 600,
     minimo: 90,
   },
@@ -168,20 +175,22 @@ export function calcularFracionado({
     fatia = r.caminhao.capacidadeKg > 0 ? peso.cobravel / r.caminhao.capacidadeKg : 0
   }
 
-  // O fator do fracionado transforma o rateio ideal em preço de
-  // operação real (ver comentário na região).
+  // As duas partes do preço (ver comentário na região).
   const fator = r.fatorFracionado || 1
-  const proporcional = cheioComPedagio * fatia * fator
+  const temCarga = peso.cobravel > 0
 
-  // Teto: fracionado nunca custa mais que a carreta inteira. Com o
-  // fator de 3, uma carga acima de um terço da carreta passaria do
-  // preço do dedicado — e aí o certo é oferecer o dedicado, não cobrar
-  // mais caro pelo serviço pior.
-  const bateuNoTeto = proporcional > cheioComPedagio && peso.cobravel > 0
-  const comTeto = bateuNoTeto ? cheioComPedagio : proporcional
+  const rateio = cheioComPedagio * fatia * fator
+  const embarque = temCarga ? (r.embarque || 0) : 0
+  const proposto = rateio + embarque
 
-  const fretePeso = Math.max(comTeto, peso.cobravel > 0 ? r.minimo : 0)
-  const usouMinimo = peso.cobravel > 0 && comTeto < r.minimo
+  // Teto: fracionado nunca custa mais que o veículo de referência
+  // inteiro. Chegou lá, o certo é oferecer o dedicado, não cobrar mais
+  // caro pelo serviço pior.
+  const bateuNoTeto = temCarga && proposto > cheioComPedagio
+  const comTeto = bateuNoTeto ? cheioComPedagio : proposto
+
+  const fretePeso = Math.max(comTeto, temCarga ? r.minimo : 0)
+  const usouMinimo = temCarga && comTeto < r.minimo
 
   const gris = Math.max(0, valorNFe) * (parametros.gris || 0)
   const taxas = Math.max(0, taxasFixas)
@@ -196,6 +205,8 @@ export function calcularFracionado({
     valorPorKm: km > 0 ? cheioComPedagio / km : 0,
     fatia,
     fator,
+    rateio,
+    embarque,
     fatiaPeso,
     fatiaEspaco,
     cobrouPorEspaco: espacoDoBau ? fatiaEspaco > fatiaPeso : peso.cubou,
