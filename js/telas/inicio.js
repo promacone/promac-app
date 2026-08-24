@@ -25,7 +25,7 @@ export function telaInicio({ sessao, modulos, aoEscolher, aoSair, aoAbrirConta }
     ]),
 
     el('div', { classe: 'inicio__marca' }, [
-      el('img', { classe: 'inicio__logo', src: 'icones/logo.png', alt: 'PROMAC Transportes' }),
+      el('img', { classe: 'inicio__logo', src: 'icones/logo-clara.png', alt: 'PROMAC Transportes' }),
       el('p', { classe: 'inicio__chamada', texto: 'Selecione o módulo que deseja acessar' }),
     ]),
 
