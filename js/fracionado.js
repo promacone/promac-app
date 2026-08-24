@@ -40,14 +40,15 @@ export const CUBAGEM_KG_POR_M3 = 300
  * cliente esperto descobriria isso rápido.
  */
 export const FAIXAS_PADRAO = [
-  { ate: 0.075, fator: 2.65 },
-  { ate: 0.215, fator: 1.80 },
-  { ate: 0.36, fator: 1.62 },
-  { ate: 1.00, fator: 1.45 },
+  { ate: 0.075, fator: 2.39 },
+  { ate: 0.215, fator: 1.62 },
+  { ate: 0.36, fator: 1.46 },
+  { ate: 1.00, fator: 1.31 },
 ]
 // Curva ajustada aos preços reais do Pedro (2026-08-24), rota Ponta
 // Grossa -> São Paulo: 100 kg = 1.100 / 300 kg = 1.290 / 1 t = 1.980 /
-// 3 t = 2.980 / 5 t = 3.980. Não é palpite de mercado: os fatores foram
+// 3 t = 2.980 / 5 t = 3.980 — e depois reduzida em 10% uniformes a
+// pedido dele ("abaixe um pouco"). Não é palpite de mercado: os fatores foram
 // resolvidos para o motor reproduzir esses cinco pontos com o embarque
 // de R$ 1.000. A cabeça do Pedro é quase linear — ~R$ 1.000 de base
 // mais ~R$ 0,95/kg até 1 t, e ~R$ 0,50/kg dali em diante — e é isso que
@@ -89,10 +90,10 @@ export const REGIOES = [
     // O embarque de R$ 1.000 veio dos números do Pedro: qualquer carga
     // PG -> SP começa em torno de R$ 1.100. É a parcela que a carga
     // pequena paga pela viagem existir.
-    embarque: 1000,
+    embarque: 900,
     faixas: FAIXAS_PADRAO,
     distanciaKm: 600,
-    minimo: 1000,
+    minimo: 900,
     motorCompleto: true,
   },
   {
