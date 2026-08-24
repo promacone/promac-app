@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>PROMAC Transportes</title>
+
+  <!-- viewport-fit=cover deixa o app usar a tela inteira do iPhone,
+       incluindo a área do notch. O CSS cuida do respiro. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#252a5e">
+  <meta name="description" content="Cotação de frete e acompanhamento de cargas da PROMAC Transportes.">
+
+  <!-- Faz o iPhone abrir em tela cheia quando adicionado à tela de início. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PROMAC">
+  <link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icones/icone-192.png">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<!-- ===================== Carregando ===================== -->
+<div id="tela-carregando" class="centralizado">
+  <div style="display:grid;justify-items:center;gap:20px">
+    <img src="icones/logo.png" alt="PROMAC Transportes" style="width:220px">
+    <div class="carregando" style="border-color:rgba(37,42,94,.2);border-top-color:#252a5e"></div>
+  </div>
+</div>
+
+<!-- ===================== Login ===================== -->
+<div id="tela-login" class="centralizado oculto">
+  <form class="login" id="form-login">
+    <img class="login__logo" src="icones/logo.png" alt="PROMAC Transportes">
+    <p class="login__subtitulo">Entre com sua conta da empresa</p>
+
+    <div class="login__campos">
+      <input type="email" id="login-email" placeholder="E-mail" autocomplete="username"
+             inputmode="email" autocapitalize="none" autocorrect="off" required>
+      <input type="password" id="login-senha" placeholder="Senha"
+             autocomplete="current-password" required>
+    </div>
+
+    <div id="login-aviso"></div>
+
+    <button type="submit" class="botao" id="login-entrar">Entrar</button>
+
+    <div style="text-align:center">
+      <button type="button" class="botao-secundario" id="login-esqueci">Esqueci minha senha</button>
+    </div>
+
+    <div class="login__rodape">
+      Recebeu um convite da PROMAC?<br>
+      <button type="button" class="botao-secundario" id="login-criar">Criar minha conta</button>
+    </div>
+  </form>
+</div>
+
+<!-- ===================== Criar conta ===================== -->
+<div id="tela-cadastro" class="centralizado oculto">
+  <form class="login" id="form-cadastro">
+    <img class="login__logo" src="icones/logo.png" alt="PROMAC Transportes">
+    <p class="login__subtitulo">Crie sua senha de acesso</p>
+
+    <div class="login__campos">
+      <input type="text" id="cadastro-nome" placeholder="Seu nome" autocomplete="name">
+      <input type="email" id="cadastro-email" placeholder="E-mail do convite"
+             autocomplete="username" inputmode="email" autocapitalize="none" autocorrect="off" required>
+      <input type="password" id="cadastro-senha" placeholder="Senha (mínimo 6 caracteres)"
+             autocomplete="new-password" required>
+      <input type="password" id="cadastro-senha2" placeholder="Repita a senha"
+             autocomplete="new-password" required>
+    </div>
+
+    <p class="campo__ajuda">A senha é sua. Nem a PROMAC nem o app conseguem vê-la.</p>
+
+    <div id="cadastro-aviso"></div>
+
+    <button type="submit" class="botao">Criar conta</button>
+    <div style="text-align:center">
+      <button type="button" class="botao-secundario" id="cadastro-voltar">Voltar para o login</button>
+    </div>
+  </form>
+</div>
+
+<!-- ===================== Acesso pendente ===================== -->
+<div id="tela-pendente" class="centralizado oculto">
+  <div class="login" style="text-align:center">
+    <img class="login__logo" src="icones/logo.png" alt="PROMAC Transportes">
+    <div class="aviso aviso--atencao">
+      <strong>Acesso pendente</strong><br>
+      Sua conta foi criada, mas ainda não recebeu liberação para usar o PROMAC.
+    </div>
+    <p class="campo__ajuda" id="pendente-email"></p>
+    <p class="campo__ajuda">Peça ao administrador da PROMAC para liberar esse e-mail.</p>
+    <button type="button" class="botao" id="pendente-conferir">Já fui liberado, conferir</button>
+    <div style="text-align:center">
+      <button type="button" class="botao-secundario" id="pendente-sair">Sair</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== Aplicativo ===================== -->
+<div id="tela-app" class="tela oculto">
+  <header class="cabecalho">
+    <img class="cabecalho__logo" src="icones/logo.png" alt="PROMAC">
+    <span class="cabecalho__espaco"></span>
+    <span class="cabecalho__titulo" id="app-titulo">Cotação</span>
+  </header>
+
+  <main class="conteudo" id="app-conteudo"></main>
+
+  <nav class="abas" id="app-abas"></nav>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
