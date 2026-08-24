@@ -24,13 +24,15 @@ const fretes = [
   {
     id: '1', cliente: 'Ambev', cidadeColeta: 'São Paulo, SP',
     cidadeEntrega: 'Curitiba, PR', estagio: 'coleta', valorFrete: 4915,
-    tipoVeiculo: 'Carreta', prioridade: 'urgente',
+    tipoVeiculo: 'truck', prioridade: 'urgente',
+    dataColeta: '2026-08-20',
     previsaoEntrega: Date.now() + 86400000, criadoEm: Date.now(),
   },
   {
     id: '2', cliente: 'Gradisa', cidadeColeta: 'Ponta Grossa, PR',
     cidadeEntrega: 'Belo Horizonte, MG', estagio: 'motoristaContratado',
-    valorFrete: 12030, tipoVeiculo: 'Truck', prioridade: 'normal',
+    valorFrete: 12030, tipoVeiculo: 'CARRETA', prioridade: 'normal',
+    dataColeta: { seconds: Math.floor(Date.now() / 1000) - 86400 },
     motoristaNome: 'João da Silva', placa: 'ABC1D23',
     motoristaTelefone: '(42) 99999-8888',
     previsaoEntrega: Date.now() + 172800000, criadoEm: Date.now() - 1000,

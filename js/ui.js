@@ -66,13 +66,32 @@ export function linha(rotulo, valor, destaque = false) {
 /** Seletor com opções. */
 export function seletor(valorAtual, opcoes, aoMudar) {
   const select = el('select', { onchange: (e) => aoMudar(e.target.value) })
+
+  const igual = (a, b) =>
+    String(a).trim().toLowerCase() === String(b ?? '').trim().toLowerCase()
+
   for (const { valor, titulo } of opcoes) {
     select.append(el('option', {
       value: valor,
       texto: titulo,
-      selected: String(valor) === String(valorAtual),
+      // Compara sem ligar para maiúscula: um cadastro antigo gravado como
+      // "truck" precisa continuar apontando para "TRUCK" na lista nova.
+      selected: igual(valor, valorAtual),
     }))
   }
+
+  // Valor que não está mais na lista vira uma opção própria, no fim.
+  // Sem isso, abrir a ficha para conferir outra coisa já trocaria o valor
+  // em silêncio pelo primeiro item — e ninguém veria a alteração.
+  const conhecido = opcoes.some(({ valor }) => igual(valor, valorAtual))
+  if (valorAtual && !conhecido) {
+    select.append(el('option', {
+      value: valorAtual,
+      texto: `${valorAtual} (fora da lista)`,
+      selected: true,
+    }))
+  }
+
   return select
 }
 

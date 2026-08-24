@@ -10,6 +10,8 @@
  */
 
 :root {
+  /* Faz o calendário e os menus do próprio sistema virem escuros. */
+  color-scheme: dark;
   /* Camadas, da mais funda para a mais alta. */
   --fundo: #080a11;
   --superficie: #11141f;
@@ -449,6 +451,9 @@ select {
 
 .linha:last-of-type { border-bottom: none; }
 .linha__rotulo { color: var(--texto-medio); }
+
+/* Nas linhas editáveis o rótulo é quem cede espaço, não quem quebra. */
+.linha--edita .linha__rotulo { flex: 1 1 auto; min-width: 0; }
 
 .linha__valor {
   font-variant-numeric: tabular-nums;
@@ -1064,4 +1069,64 @@ body.arrastando .ficha { cursor: grabbing; }
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
   margin: 2px 0 1px;
+}
+
+/* ---------- Campos editáveis dentro da ficha ---------- */
+
+.linha--edita { padding: 8px 0; gap: 10px; }
+
+.linha__entrada {
+  /* Parece texto até receber o toque: a ficha continua se lendo como
+     ficha, mas tudo que muda no dia a dia se corrige ali mesmo. */
+  width: auto;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 62%;
+  text-align: right;
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.linha__entrada:hover { background: var(--superficie-toque); }
+
+.linha__entrada:focus {
+  background: var(--superficie-alta);
+  border-color: var(--azul);
+  box-shadow: var(--brilho-azul);
+  outline: none;
+}
+
+.linha__entrada::placeholder { font-weight: 500; color: var(--texto-fraco); }
+
+.linha__entrada--dinheiro,
+.linha__entrada--data { font-variant-numeric: tabular-nums; }
+
+/* Campos de tamanho previsível ficam estreitos, para o rótulo caber
+   inteiro na mesma linha no celular. */
+.linha__entrada--dinheiro { max-width: 145px; }
+
+.linha__entrada--data {
+  /* O ícone do calendário some quando encostado na borda direita. */
+  padding-right: 6px;
+  /* Medido no iPhone mais estreito: acima disto o rótulo "Previsão de
+     entrega" quebra em duas linhas. */
+  max-width: 146px;
+}
+
+/* O botão do calendário do WebKit nasce escuro demais no fundo escuro. */
+.linha__entrada--data::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
+.ficha-whats {
+  margin-top: 10px;
+  text-align: center;
+  text-decoration: none;
+  display: block;
 }

@@ -5,10 +5,10 @@
 
 import {
   bd, doc, setDoc, updateDoc, deleteDoc, collection, getDocs, arrayUnion,
-} from '../firebase.js?v=20260824134355'
-import { reais } from '../frete.js?v=20260824134355'
-import { el, render, campo, linha, mostrarAviso, seletor } from '../ui.js?v=20260824134355'
-import { tornarArrastavel } from '../arrastar.js?v=20260824134355'
+} from '../firebase.js?v=20260824135249'
+import { reais } from '../frete.js?v=20260824135249'
+import { el, render, campo, linha, mostrarAviso, seletor } from '../ui.js?v=20260824135249'
+import { tornarArrastavel } from '../arrastar.js?v=20260824135249'
 
 /** Os fretes de verdade, no Firestore. */
 export function firestore() {
@@ -53,7 +53,8 @@ export const ESTAGIOS = [
   { id: 'entregue', titulo: 'Entregue', cor: '#22a05c' },
 ]
 
-const VEICULOS = ['VUC', '3/4', 'Toco', 'Truck', 'Carreta', 'Bitrem', 'Van', 'Outro']
+// Os tipos que a PROMAC contrata, na ordem do menor para o maior.
+const VEICULOS = ['VLC', '3/4', 'TOCO', 'TRUCK', 'BITRUCK', 'CARRETA']
 const PRIORIDADES = [
   { id: 'normal', titulo: 'Normal' },
   { id: 'urgente', titulo: 'Urgente' },
@@ -419,6 +420,100 @@ export function telaContratacoes(sessao, repositorio = firestore()) {
     const conteudo = el('div', { style: 'display:grid;gap:14px' })
     painel.corpo.append(conteudo)
 
+    const avisoGravacao = el('div')
+
+    /**
+     * Grava uma alteração feita direto na ficha.
+     *
+     * Não redesenha a ficha de propósito: quem acabou de digitar num campo
+     * veria o cursor sumir no meio do preenchimento. O quadro atrás é
+     * atualizado, que é o que precisa refletir.
+     */
+    async function gravar(mudancas) {
+      const atual = buscar()
+      try {
+        await repositorio.salvar({ ...atual, ...mudancas })
+        Object.assign(atual, mudancas)
+        mostrarAviso(avisoGravacao, '')
+        desenharColunas()
+      } catch {
+        mostrarAviso(avisoGravacao, 'Não consegui salvar essa alteração. Confira a internet e tente de novo.')
+      }
+    }
+
+    /** Linha com um campo de texto no lugar do valor. */
+    function linhaTexto(rotulo, valorAtual, exemplo, aoGravar, atributos = {}) {
+      const entrada = el('input', {
+        type: 'text',
+        classe: 'linha__entrada',
+        value: valorAtual || '',
+        placeholder: exemplo,
+        autocomplete: 'off',
+        autocorrect: 'off',
+        ...atributos,
+      })
+
+      // "change" e não "input": grava quando a pessoa termina, não a cada
+      // letra digitada — senão seria uma escrita no servidor por tecla.
+      entrada.addEventListener('change', () => aoGravar(entrada.value.trim()))
+      return el('div', { classe: 'linha linha--edita' }, [
+        el('span', { classe: 'linha__rotulo', texto: rotulo }),
+        entrada,
+      ])
+    }
+
+    /** Linha com o calendário do sistema. */
+    function linhaData(rotulo, valorAtual, aoGravar) {
+      const data = paraData(valorAtual)
+      const entrada = el('input', {
+        type: 'date',
+        classe: 'linha__entrada linha__entrada--data',
+        value: data ? paraTextoISO(data) : '',
+      })
+
+      entrada.addEventListener('change', () => {
+        // Campo limpo apaga a data em vez de gravar lixo.
+        aoGravar(entrada.value ? deISO(entrada.value) : null)
+      })
+
+      return el('div', { classe: 'linha linha--edita' }, [
+        el('span', { classe: 'linha__rotulo', texto: rotulo }),
+        entrada,
+      ])
+    }
+
+    /** Linha de dinheiro: mostra formatado, edita em número puro. */
+    function linhaDinheiro(rotulo, valorAtual, aoGravar) {
+      const entrada = el('input', {
+        type: 'text',
+        inputmode: 'decimal',
+        classe: 'linha__entrada linha__entrada--dinheiro',
+        value: reais(valorAtual || 0),
+      })
+
+      // Ao tocar no campo some o "R$" e os pontos: digitar por cima de
+      // "R$ 12.030,00" no celular é onde o valor sai errado.
+      entrada.addEventListener('focus', () => {
+        entrada.value = valorAtual ? String(valorAtual).replace('.', ',') : ''
+        entrada.select()
+      })
+
+      entrada.addEventListener('change', () => {
+        const valor = lerDinheiro(entrada.value)
+        entrada.value = reais(valor)
+        aoGravar(valor)
+      })
+
+      entrada.addEventListener('blur', () => {
+        if (!entrada.matches(':focus')) entrada.value = reais(lerDinheiro(entrada.value))
+      })
+
+      return el('div', { classe: 'linha linha--edita' }, [
+        el('span', { classe: 'linha__rotulo', texto: rotulo }),
+        entrada,
+      ])
+    }
+
     function desenharFicha() {
       const frete = buscar()
       const etapa = estagio(frete.estagio)
@@ -427,8 +522,6 @@ export function telaContratacoes(sessao, repositorio = firestore()) {
       const proximo = ESTAGIOS[indice + 1]
       const atrasado = frete.estagio !== 'entregue'
         && frete.previsaoEntrega && frete.previsaoEntrega < Date.now()
-
-      const margem = (frete.valorFrete || 0) - (frete.valorMotorista || 0)
 
       render(conteudo,
         // Fase atual, com o mesmo verde/azul/amarelo da coluna.
@@ -470,42 +563,49 @@ export function telaContratacoes(sessao, repositorio = firestore()) {
           el('div', { classe: 'secao__titulo', texto: 'Rota' }),
           linha('Cidade de coleta', frete.cidadeColeta || '—'),
           linha('Cidade de entrega', frete.cidadeEntrega || '—'),
-          frete.dataColeta ? linha('Data da coleta', dataCurta(frete.dataColeta)) : null,
-          frete.previsaoEntrega ? linha('Previsão de entrega', dataCurta(frete.previsaoEntrega)) : null,
+          // As datas mudam o tempo todo — remarcação de coleta, atraso na
+          // estrada — e abrir o formulário inteiro só para mexer numa
+          // delas era caminho demais. Aqui já abre o calendário.
+          linhaData('Data da coleta', frete.dataColeta, (valor) => gravar({ dataColeta: valor })),
+          linhaData('Previsão de entrega', frete.previsaoEntrega, (valor) => gravar({ previsaoEntrega: valor })),
         ]),
 
         el('div', { classe: 'cartao' }, [
           el('div', { classe: 'secao__titulo', texto: 'Carga e valores' }),
           linha('Tipo de veículo', frete.tipoVeiculo || '—'),
-          linha('Valor do frete', reais(frete.valorFrete || 0), true),
-          linha('Pago ao motorista', reais(frete.valorMotorista || 0)),
-          // O que sobra é a conta que interessa na hora de aceitar ou não.
-          linha('Sobra para a PROMAC', reais(margem), true),
+          // Frete se negocia até a carga sair. Deixar os dois valores
+          // editáveis aqui evita ter que abrir o formulário no meio de uma
+          // ligação com o motorista.
+          linhaDinheiro('Valor do frete', frete.valorFrete, (valor) => gravar({ valorFrete: valor })),
+          linhaDinheiro('Pago ao motorista', frete.valorMotorista, (valor) => gravar({ valorMotorista: valor })),
         ]),
+
+        avisoGravacao,
 
         el('div', { classe: 'cartao' }, [
           el('div', { classe: 'secao__titulo', texto: 'Motorista' }),
-          frete.motoristaNome || frete.placa || frete.motoristaTelefone
-            ? el('div', { style: 'display:grid;gap:2px' }, [
-                linha('Nome', frete.motoristaNome || '—'),
-                linha('Placa', frete.placa ? String(frete.placa).toUpperCase() : '—'),
-                frete.motoristaTelefone
-                  ? el('div', { classe: 'linha' }, [
-                      el('span', { classe: 'linha__rotulo', texto: 'Telefone' }),
-                      // Link direto: acompanhar motorista é ligar e mandar
-                      // mensagem o dia inteiro, e digitar o número de novo
-                      // a cada vez é onde o erro acontece.
-                      el('a', {
-                        classe: 'ficha-contato',
-                        href: `https://wa.me/${soNumeros(frete.motoristaTelefone)}`,
-                        target: '_blank',
-                        rel: 'noopener',
-                        texto: frete.motoristaTelefone,
-                      }),
-                    ])
-                  : linha('Telefone', '—'),
-              ])
-            : el('p', { classe: 'campo__ajuda', texto: 'Motorista ainda não contratado.' }),
+          // Quem contrata o motorista quase nunca é quem cadastrou a
+          // carga, e costuma estar no telefone quando fecha. Os três
+          // campos ficam abertos para qualquer um preencher na hora.
+          linhaTexto('Nome', frete.motoristaNome, 'Nome do motorista',
+            (valor) => gravar({ motoristaNome: valor })),
+          linhaTexto('Telefone', frete.motoristaTelefone, '(00) 00000-0000',
+            (valor) => gravar({ motoristaTelefone: valor }), { inputmode: 'tel' }),
+          linhaTexto('Placa', frete.placa, 'ABC1D23',
+            (valor) => gravar({ placa: valor.toUpperCase() }), { autocapitalize: 'characters' }),
+
+          frete.motoristaTelefone
+            ? el('a', {
+                classe: 'botao-secundario ficha-whats',
+                // Acompanhar motorista é mandar mensagem o dia inteiro, e
+                // digitar o número de novo a cada vez é onde o erro
+                // acontece.
+                href: `https://wa.me/${soNumeros(frete.motoristaTelefone)}`,
+                target: '_blank',
+                rel: 'noopener',
+                texto: 'Chamar no WhatsApp',
+              })
+            : null,
         ]),
 
         frete.observacoes
@@ -743,26 +843,86 @@ export function telaContratacoes(sessao, repositorio = firestore()) {
 
 // ---------- Datas ----------
 
-function hojeISO(diasAMais = 0) {
-  const d = new Date(Date.now() + diasAMais * 86_400_000)
-  return d.toISOString().slice(0, 10)
+/**
+ * Lê uma data venha ela como vier.
+ *
+ * Os fretes foram cadastrados em versões diferentes do app, e o mesmo
+ * campo aparece como número, como texto "2026-08-24", como "24/08/2026"
+ * ou como carimbo do Firestore. Antes, qualquer formato inesperado virava
+ * o texto "Invalid Date" na ficha — que não diz nada a quem está lendo e
+ * ainda esconde o fato de a data existir.
+ *
+ * @returns um Date válido, ou null.
+ */
+function paraData(valor) {
+  if (valor === null || valor === undefined || valor === '') return null
+
+  if (valor instanceof Date) return valido(valor)
+
+  // Carimbo do Firestore, nas duas formas em que ele chega.
+  if (typeof valor === 'object') {
+    if (typeof valor.toDate === 'function') return valido(valor.toDate())
+    if (typeof valor.seconds === 'number') return valido(new Date(valor.seconds * 1000))
+    return null
+  }
+
+  if (typeof valor === 'number') return valido(new Date(valor))
+
+  const texto = String(valor).trim()
+  if (!texto) return null
+
+  // "2026-08-24" — meio-dia local para o dia não voltar por fuso horário.
+  const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (iso) return valido(new Date(`${texto}T12:00:00`))
+
+  // "24/08/2026", como se escreve à mão no Brasil.
+  const brasileira = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (brasileira) {
+    const [, dia, mes, ano] = brasileira
+    return valido(new Date(Number(ano), Number(mes) - 1, Number(dia), 12))
+  }
+
+  // Um número guardado como texto ainda é um carimbo de tempo.
+  if (/^\d+$/.test(texto)) return valido(new Date(Number(texto)))
+
+  return valido(new Date(texto))
 }
 
-function paraISO(timestamp) {
-  return timestamp ? new Date(timestamp).toISOString().slice(0, 10) : hojeISO()
+function valido(data) {
+  return data && !Number.isNaN(data.getTime()) ? data : null
+}
+
+function hojeISO(diasAMais = 0) {
+  return paraTextoISO(new Date(Date.now() + diasAMais * 86_400_000))
+}
+
+/** AAAA-MM-DD no fuso de quem está usando, que é o que o calendário espera. */
+function paraTextoISO(data) {
+  const mes = String(data.getMonth() + 1).padStart(2, '0')
+  const dia = String(data.getDate()).padStart(2, '0')
+  return `${data.getFullYear()}-${mes}-${dia}`
+}
+
+function paraISO(valor) {
+  const data = paraData(valor)
+  return data ? paraTextoISO(data) : hojeISO()
 }
 
 function deISO(iso) {
-  // Meio-dia local evita o dia "voltar" por fuso horário.
-  return new Date(`${iso}T12:00:00`).getTime()
+  const data = paraData(iso)
+  return data ? data.getTime() : null
 }
 
-function dataCurta(timestamp) {
-  return new Date(timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+function dataCurta(valor) {
+  const data = paraData(valor)
+  if (!data) return '—'
+  return data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 }
 
-function dataHora(timestamp) {
-  return new Date(timestamp).toLocaleString('pt-BR', {
+function dataHora(valor) {
+  const data = paraData(valor)
+  if (!data) return '—'
+  return data.toLocaleString('pt-BR', {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
   })
 }
@@ -783,4 +943,24 @@ function ultimaAnotacao(frete) {
 function soNumeros(telefone) {
   const digitos = String(telefone || '').replace(/\D/g, '')
   return digitos.startsWith('55') ? digitos : `55${digitos}`
+}
+
+/**
+ * Lê um valor em dinheiro escrito como der.
+ *
+ * Aceita "12030", "12030,50", "12.030,50" e "R$ 12.030,50". O ponto é
+ * separador de milhar no Brasil — tratá-lo como decimal transformaria
+ * doze mil reais em doze.
+ */
+function lerDinheiro(texto) {
+  const limpo = String(texto ?? '').replace(/[^\d,.-]/g, '')
+  if (!limpo) return 0
+
+  const temVirgula = limpo.includes(',')
+  const normalizado = temVirgula
+    ? limpo.replace(/\./g, '').replace(',', '.')
+    : limpo
+
+  const valor = parseFloat(normalizado)
+  return Number.isFinite(valor) && valor >= 0 ? valor : 0
 }
