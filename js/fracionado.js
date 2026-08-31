@@ -84,14 +84,38 @@ export const REGIOES = [
     distanciaKm: 600,
     motorCompleto: true,
   },
+  // Centro-Oeste e Norte/Nordeste usam o mesmo motor e o mesmo truck de
+  // referência do Sul/Sudeste. O que muda entre as regiões não é a
+  // fórmula — é o aproveitamento.
+  //
+  // Aproveitamento é quanto do caminhão viaja vendido. No Sul/Sudeste
+  // sobra carga de retorno e o truck raramente volta vazio. Quanto mais
+  // longe e mais isolada a região, mais difícil fechar a volta, e o
+  // frete de ida precisa pagar as duas pernas. É por isso que o número
+  // cai de 62% para 50% e depois 40%: não é margem maior, é caminhão
+  // voltando com menos carga.
   {
     id: 'centroOeste',
     titulo: 'Centro-Oeste',
     sigla: 'CO',
     ufs: ['MT', 'MS', 'GO', 'DF'],
-    caminhao: { nome: 'Carreta', tipo: 'geral', eixos: 5, capacidadeKg: 25000 },
+    caminhao: {
+      nome: 'Truck', tipo: 'geral', eixos: 3,
+      capacidadeKg: 14000,
+      capacidadeM3: 48,
+      posicoes: 14,
+      bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
+    },
+    aproveitamento: 0.50,
+    pesoMinimoFaturavel: 1800,
+    escalonamento: [
+      { ate: 3000, fator: 1.30 },
+      { ate: Infinity, fator: 1.00 },
+    ],
+    despacho: 45,
+    minimo: 1400,
     distanciaKm: 1200,
-    minimo: 130,
+    motorCompleto: true,
   },
   {
     id: 'norteNordeste',
@@ -99,9 +123,23 @@ export const REGIOES = [
     sigla: 'N/NE',
     ufs: ['BA', 'SE', 'AL', 'PE', 'PB', 'RN', 'CE', 'PI', 'MA',
           'PA', 'AP', 'AM', 'RR', 'RO', 'AC', 'TO'],
-    caminhao: { nome: 'Carreta', tipo: 'geral', eixos: 5, capacidadeKg: 25000 },
+    caminhao: {
+      nome: 'Truck', tipo: 'geral', eixos: 3,
+      capacidadeKg: 14000,
+      capacidadeM3: 48,
+      posicoes: 14,
+      bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
+    },
+    aproveitamento: 0.40,
+    pesoMinimoFaturavel: 1800,
+    escalonamento: [
+      { ate: 3000, fator: 1.30 },
+      { ate: Infinity, fator: 1.00 },
+    ],
+    despacho: 45,
+    minimo: 2200,
     distanciaKm: 2500,
-    minimo: 220,
+    motorCompleto: true,
   },
 ]
 

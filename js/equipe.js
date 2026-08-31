@@ -6,8 +6,8 @@
 import {
   bd, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs,
   serverTimestamp,
-} from './firebase.js?v=20260831105904'
-import { PARAMETROS_PADRAO } from './frete.js?v=20260831105904'
+} from './firebase.js?v=20260831110342'
+import { PARAMETROS_PADRAO } from './frete.js?v=20260831110342'
 
 /** Normaliza o e-mail: "Joao@" e "joao@" são a mesma pessoa. */
 export function chave(email) {
@@ -144,36 +144,54 @@ export async function carregarAjustesFracionado() {
     const registro = await getDoc(doc(bd, 'configuracao', 'fracionado'))
     if (!registro.exists()) return null
 
-    const d = registro.data()
-    const ajustes = {}
+    const dados = registro.data()
+    const porRegiao = {}
 
-    const caminhao = {}
-    if (numeroPositivo(d.capacidadeKg)) caminhao.capacidadeKg = d.capacidadeKg
-    if (numeroPositivo(d.capacidadeM3)) caminhao.capacidadeM3 = d.capacidadeM3
-    if (numeroPositivo(d.posicoes)) caminhao.posicoes = d.posicoes
-    if (Object.keys(caminhao).length) ajustes.caminhao = caminhao
+    // O formato antigo guardava um só conjunto, sem região — era tudo
+    // Sul/Sudeste. Continua sendo lido para não perder o que já foi
+    // salvo antes das outras regiões existirem.
+    if (dados.capacidadeKg || dados.aproveitamento) {
+      porRegiao.sulSudeste = lerRegiao(dados)
+    }
 
-    if (numeroPositivo(d.aproveitamento)) ajustes.aproveitamento = d.aproveitamento
-    if (numeroPositivo(d.pesoMinimoFaturavel)) ajustes.pesoMinimoFaturavel = d.pesoMinimoFaturavel
-    if (numeroPositivo(d.despacho) || d.despacho === 0) ajustes.despacho = d.despacho
-    if (numeroPositivo(d.minimo) || d.minimo === 0) ajustes.minimo = d.minimo
+    for (const id of ['sulSudeste', 'centroOeste', 'norteNordeste']) {
+      if (dados[id]) porRegiao[id] = lerRegiao(dados[id])
+    }
 
-    return Object.keys(ajustes).length ? ajustes : null
+    return Object.keys(porRegiao).length ? porRegiao : null
   } catch {
     return null
   }
 }
 
-export async function salvarAjustesFracionado(ajustes) {
-  await setDoc(doc(bd, 'configuracao', 'fracionado'), {
-    capacidadeKg: ajustes.caminhao.capacidadeKg,
-    capacidadeM3: ajustes.caminhao.capacidadeM3,
-    posicoes: ajustes.caminhao.posicoes,
-    aproveitamento: ajustes.aproveitamento,
-    pesoMinimoFaturavel: ajustes.pesoMinimoFaturavel,
-    despacho: ajustes.despacho,
-    minimo: ajustes.minimo,
-  })
+function lerRegiao(d) {
+  const ajustes = {}
+
+  const caminhao = {}
+  if (numeroPositivo(d.capacidadeKg)) caminhao.capacidadeKg = d.capacidadeKg
+  if (numeroPositivo(d.capacidadeM3)) caminhao.capacidadeM3 = d.capacidadeM3
+  if (numeroPositivo(d.posicoes)) caminhao.posicoes = d.posicoes
+  if (Object.keys(caminhao).length) ajustes.caminhao = caminhao
+
+  if (numeroPositivo(d.aproveitamento)) ajustes.aproveitamento = d.aproveitamento
+  if (numeroPositivo(d.pesoMinimoFaturavel)) ajustes.pesoMinimoFaturavel = d.pesoMinimoFaturavel
+  if (numeroPositivo(d.despacho) || d.despacho === 0) ajustes.despacho = d.despacho
+  if (numeroPositivo(d.minimo) || d.minimo === 0) ajustes.minimo = d.minimo
+
+  if (Array.isArray(d.escalonamento) && d.escalonamento.length) {
+    // `null` no Firestore representa o "sem limite" da última faixa —
+    // Infinity não sobrevive à gravação.
+    ajustes.escalonamento = d.escalonamento.map((f) => ({
+      ate: numeroPositivo(f.ate) ? f.ate : Infinity,
+      fator: numeroPositivo(f.fator) ? f.fator : 1,
+    }))
+  }
+
+  return ajustes
+}
+
+export async function salvarAjustesFracionado(regiaoId, ajustes) {
+  await setDoc(doc(bd, 'configuracao', 'fracionado'), { [regiaoId]: ajustes }, { merge: true })
 }
 
 function numeroPositivo(valor) {

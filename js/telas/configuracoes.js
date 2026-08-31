@@ -4,11 +4,11 @@
 // acesso e mexer em quanto se cobra são assuntos diferentes, e misturá-los
 // numa tela só confundia na hora de achar.
 
-import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260831105904'
-import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260831105904'
-import { regiao } from '../fracionado.js?v=20260831105904'
-import { mensagemDeErro } from '../firebase.js?v=20260831105904'
-import { el, render, campo, mostrarAviso, comCarregamento, versaoDoApp } from '../ui.js?v=20260831105904'
+import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260831110342'
+import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260831110342'
+import { regiao, REGIOES } from '../fracionado.js?v=20260831110342'
+import { mensagemDeErro } from '../firebase.js?v=20260831110342'
+import { el, render, campo, seletor, mostrarAviso, comCarregamento, versaoDoApp } from '../ui.js?v=20260831110342'
 
 export function telaConfiguracoes(sessao) {
   const ehAdministrador = sessao.membro.papel === 'master'
@@ -63,6 +63,14 @@ export function telaConfiguracoes(sessao) {
 
   const resumo = el('div')
 
+  // O cartão do fracionado é redesenhado ao trocar de região.
+  const areaFracionado = el('div')
+  let regiaoEscolhida = 'sulSudeste'
+
+  function redesenharFracionado() {
+    render(areaFracionado, cartaoFracionado(regiaoEscolhida))
+  }
+
   function atualizarResumo() {
     const p = sessao.parametros
     render(resumo,
@@ -111,7 +119,7 @@ export function telaConfiguracoes(sessao) {
         ])
       : el('div', { classe: 'cartao' }, [resumo]),
 
-    cartaoFracionado(),
+    areaFracionado,
 
     el('div', { classe: 'cartao' }, [
       el('div', { classe: 'secao__titulo', texto: 'Tabela de piso mínimo' }),
@@ -133,20 +141,39 @@ export function telaConfiguracoes(sessao) {
   ])
 
   /**
-   * Motor do frete fracionado — Sul e Sudeste.
+   * Motor do frete fracionado, por região.
    *
    * O que se ajusta aqui muda o preço para a equipe inteira na hora: o
    * truck de referência, o aproveitamento médio, o peso mínimo
    * faturável, o despacho e o frete mínimo.
    */
-  function cartaoFracionado() {
-    const padrao = regiao('sulSudeste')
-    const atual = sessao.parametros.fracionado || {}
+  function cartaoFracionado(regiaoId = 'sulSudeste') {
+    const padrao = regiao(regiaoId)
+    // Os ajustes são guardados por região; o formato antigo, sem região,
+    // continua valendo para o Sul/Sudeste.
+    const guardados = sessao.parametros.fracionado || {}
+    const atual = guardados[regiaoId] || (regiaoId === 'sulSudeste' ? guardados : {})
     const caminhaoAtual = { ...padrao.caminhao, ...(atual.caminhao || {}) }
+
+    const avisoFrac = el('div')
+
+    const numerico = (valor) => el('input', {
+      type: 'text',
+      inputmode: 'decimal',
+      value: String(valor).replace('.', ','),
+      disabled: !ehAdministrador,
+    })
+
+    const capacidadeKg = numerico(caminhaoAtual.capacidadeKg)
+    const capacidadeM3 = numerico(caminhaoAtual.capacidadeM3 || 48)
+    const posicoes = numerico(caminhaoAtual.posicoes || 14)
     const embarque = numerico(atual.despacho ?? padrao.despacho)
     const minimo = numerico(atual.minimo ?? padrao.minimo)
     const aproveitamento = numerico(Math.round((atual.aproveitamento ?? padrao.aproveitamento) * 100))
     const pesoMinimo = numerico(atual.pesoMinimoFaturavel ?? padrao.pesoMinimoFaturavel)
+
+    const escalonamento = numerico(
+      (atual.escalonamento || padrao.escalonamento || [{ fator: 1 }])[0].fator)
 
     async function salvarFracionado(botao) {
       mostrarAviso(avisoFrac, '')
@@ -166,6 +193,10 @@ export function telaConfiguracoes(sessao) {
         pesoMinimoFaturavel: numero(pesoMinimo.value),
         despacho: numero(embarque.value),
         minimo: numero(minimo.value),
+        escalonamento: [
+          { ate: 3000, fator: lerNumero(escalonamento) || 1 },
+          { ate: null, fator: 1 },
+        ],
       }
 
       if (!dados.caminhao.capacidadeKg || !dados.caminhao.capacidadeM3) {
@@ -179,8 +210,8 @@ export function telaConfiguracoes(sessao) {
 
       await comCarregamento(botao, async () => {
         try {
-          await salvarAjustesFracionado(dados)
-          sessao.parametros.fracionado = dados
+          await salvarAjustesFracionado(regiaoId, dados)
+          sessao.parametros.fracionado = { ...guardados, [regiaoId]: dados }
           mostrarAviso(avisoFrac, 'Motor do fracionado salvo. As cotações já usam os novos valores.', 'ok')
         } catch (erro) {
           mostrarAviso(avisoFrac, mensagemDeErro(erro))
@@ -189,11 +220,14 @@ export function telaConfiguracoes(sessao) {
     }
 
     return el('div', { classe: 'cartao' }, [
-      el('div', { classe: 'secao__titulo', texto: 'Frete fracionado — Sul e Sudeste' }),
+      el('div', { classe: 'secao__titulo', texto: `Frete fracionado — ${padrao.titulo}` }),
       el('p', {
         classe: 'campo__ajuda',
-        texto: 'O truck de referência do rateio e a régua de margem por ocupação. Vale para a equipe inteira.',
+        texto: 'A régua comercial desta região. Vale para a equipe inteira assim que salvar.',
       }),
+      campo('Região', seletor(regiaoId,
+        REGIOES.map((r) => ({ valor: r.id, titulo: r.titulo })),
+        (valor) => { regiaoEscolhida = valor; redesenharFracionado() })),
 
       campo('Peso máximo do truck (kg)', capacidadeKg),
       campo('Cubagem máxima (m³)', capacidadeM3),
@@ -204,6 +238,8 @@ export function telaConfiguracoes(sessao) {
         'Nenhum despacho é cobrado abaixo disto. É o que impede a caixa pequena de viajar quase de graça.'),
       campo('Despacho — papelada e manuseio (R$)', embarque),
       campo('Frete mínimo (R$)', minimo),
+      campo('Fator dos primeiros 3.000 kg', escalonamento,
+        'Quanto mais caro é o quilo até 3 t. Acima disso o preço volta ao normal. É o botão da faixa do meio.'),
 
       avisoFrac,
 
@@ -249,5 +285,6 @@ export function telaConfiguracoes(sessao) {
   }
 
   atualizarResumo()
+  redesenharFracionado()
   return raiz
 }
