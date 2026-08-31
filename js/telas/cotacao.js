@@ -15,11 +15,11 @@
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js?v=20260831110342'
-import { rotaComMemoria } from '../qualp.js?v=20260831110342'
-import { campoDeCidade } from '../cidades.js?v=20260831110342'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260831110342'
-import { telaFreteFracionado } from './fracionado.js?v=20260831110342'
+} from '../frete.js?v=20260831110813'
+import { rotaComMemoria } from '../qualp.js?v=20260831110813'
+import { campoDeCidade } from '../cidades.js?v=20260831110813'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260831110813'
+import { telaFreteFracionado } from './fracionado.js?v=20260831110813'
 
 /** Escolhe entre as duas formas de cotar. */
 export function telaCotacao(sessao) {

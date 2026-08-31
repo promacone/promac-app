@@ -107,13 +107,19 @@ export const REGIOES = [
       bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
     },
     aproveitamento: 0.50,
-    pesoMinimoFaturavel: 1800,
+    // 800 kg, e não os 1.800 do Sul/Sudeste.
+    //
+    // O peso mínimo faturável multiplica junto com a distância: manter
+    // 1.800 kg aqui fazia 500 kg até Goiânia custar R$ 4.060. O custo
+    // fixo de manusear um despacho pequeno não cresce com o km, então o
+    // piso precisa ser menor onde a viagem é mais longa.
+    pesoMinimoFaturavel: 800,
     escalonamento: [
       { ate: 3000, fator: 1.30 },
       { ate: Infinity, fator: 1.00 },
     ],
     despacho: 45,
-    minimo: 1400,
+    minimo: 1200,
     distanciaKm: 1200,
     motorCompleto: true,
   },
@@ -130,14 +136,17 @@ export const REGIOES = [
       posicoes: 14,
       bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
     },
-    aproveitamento: 0.40,
-    pesoMinimoFaturavel: 1800,
+    // Opção A, escolhida pelo Pedro em 2026-08-31. Os 40% anteriores
+    // punham 500 kg até Salvador em R$ 8.054 — perto de metade de um
+    // truck dedicado, o que não se vende.
+    aproveitamento: 0.50,
+    pesoMinimoFaturavel: 800,
     escalonamento: [
       { ate: 3000, fator: 1.30 },
       { ate: Infinity, fator: 1.00 },
     ],
     despacho: 45,
-    minimo: 2200,
+    minimo: 1200,
     distanciaKm: 2500,
     motorCompleto: true,
   },
