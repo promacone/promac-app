@@ -76,7 +76,8 @@ export const REGIOES = [
     // 3 t estava barato demais.
     escalonamento: [
       { ate: 3000, fator: 1.30 },
-      { ate: Infinity, fator: 1.00 },
+      { ate: 6000, fator: 0.80 },
+      { ate: Infinity, fator: 0.68 },
     ],
     // Papelada e manuseio, por despacho.
     despacho: 45,
@@ -119,7 +120,8 @@ export const REGIOES = [
     pesoMinimoFaturavel: 600,
     escalonamento: [
       { ate: 3000, fator: 1.25 },
-      { ate: Infinity, fator: 1.00 },
+      { ate: 6000, fator: 0.80 },
+      { ate: Infinity, fator: 0.68 },
     ],
     despacho: 45,
     minimo: 900,
@@ -145,8 +147,9 @@ export const REGIOES = [
     aproveitamento: 0.50,
     pesoMinimoFaturavel: 800,
     escalonamento: [
-      { ate: 3000, fator: 1.30 },
-      { ate: Infinity, fator: 1.00 },
+      { ate: 3000, fator: 1.25 },
+      { ate: 6000, fator: 0.80 },
+      { ate: Infinity, fator: 0.68 },
     ],
     despacho: 45,
     minimo: 1200,
@@ -220,9 +223,11 @@ export function calcularFracionado({
     ? {
         ...base,
         caminhao: { ...base.caminhao, ...(ajustes.caminhao || {}) },
-        embarque: ajustes.embarque ?? base.embarque,
+        aproveitamento: ajustes.aproveitamento ?? base.aproveitamento,
+        pesoMinimoFaturavel: ajustes.pesoMinimoFaturavel ?? base.pesoMinimoFaturavel,
+        escalonamento: ajustes.escalonamento ?? base.escalonamento,
+        despacho: ajustes.despacho ?? base.despacho,
         minimo: ajustes.minimo ?? base.minimo,
-        faixas: ajustes.faixas ?? base.faixas,
       }
     : base
 
@@ -278,8 +283,17 @@ export function calcularFracionado({
   // A consolidação entra aqui: com parte do truck já vendida, o
   // aproveitamento sobe, o quilo fica mais barato e a carga nova
   // aproveita a viagem — sem precisar de regra à parte.
+  // Só a consolidação levanta o aproveitamento — espaço já vendido a
+  // outro cliente preenche o caminhão e barateia o quilo.
+  //
+  // Chegou a entrar aqui também a fatia da própria carga, com o
+  // raciocínio de que um despacho grande não deixa espaço vazio. A ideia
+  // é correta, mas a conta não fecha: o preço por quilo cai na mesma
+  // proporção em que o peso sobe, os dois se cancelam, e acima de
+  // ~8.700 kg o frete passava a DIMINUIR com mais carga. Quem controla
+  // essa ponta é o teto do dedicado, mais abaixo.
   const aproveitamento = r.motorCompleto
-    ? Math.min(0.95, (r.aproveitamento || 0.7) + jaOcupado)
+    ? Math.min(0.98, (r.aproveitamento || 0.7) + jaOcupado)
     : 1
 
   const pesoMinimo = r.motorCompleto ? (r.pesoMinimoFaturavel || 0) : 0
