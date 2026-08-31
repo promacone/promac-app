@@ -8,14 +8,14 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260831114030'
+} from '../frete.js?v=20260831114610'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260831114030'
-import { rotaComMemoria } from '../qualp.js?v=20260831114030'
-import { campoDeCidade } from '../cidades.js?v=20260831114030'
-import { gerarProposta } from '../proposta.js?v=20260831114030'
-import { el, render, campo, linha, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831114030'
+} from '../fracionado.js?v=20260831114610'
+import { rotaComMemoria } from '../qualp.js?v=20260831114610'
+import { campoDeCidade } from '../cidades.js?v=20260831114610'
+import { gerarProposta, prepararProposta } from '../proposta.js?v=20260831114610'
+import { el, render, campo, linha, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831114610'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -559,7 +559,7 @@ export function telaFreteFracionado({ parametros }) {
       }),
       el('p', {
         classe: 'campo__ajuda',
-        texto: 'No iPhone, escolha Imprimir e depois compartilhe — dá para mandar direto no WhatsApp. No computador, escolha "Salvar como PDF".',
+        texto: 'Gera o arquivo PDF pronto. No iPhone abre o compartilhar — manda direto no WhatsApp. No computador, o arquivo é baixado.',
       }),
     ]),
   ])
@@ -570,6 +570,7 @@ export function telaFreteFracionado({ parametros }) {
   desenharDestino()
   desenharTabelas()
   recalcular()
+  prepararProposta()
   return raiz
 }
 

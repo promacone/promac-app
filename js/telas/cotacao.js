@@ -15,12 +15,12 @@
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js?v=20260831114030'
-import { rotaComMemoria } from '../qualp.js?v=20260831114030'
-import { campoDeCidade } from '../cidades.js?v=20260831114030'
-import { gerarProposta } from '../proposta.js?v=20260831114030'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831114030'
-import { telaFreteFracionado } from './fracionado.js?v=20260831114030'
+} from '../frete.js?v=20260831114610'
+import { rotaComMemoria } from '../qualp.js?v=20260831114610'
+import { campoDeCidade } from '../cidades.js?v=20260831114610'
+import { gerarProposta, prepararProposta } from '../proposta.js?v=20260831114610'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831114610'
+import { telaFreteFracionado } from './fracionado.js?v=20260831114610'
 
 /** Escolhe entre as duas formas de cotar. */
 export function telaCotacao(sessao) {
@@ -50,6 +50,7 @@ export function telaCotacao(sessao) {
 
   const raiz = el('div', { style: 'display:grid;gap:14px' }, [abas, area])
   trocar('dedicado')
+  prepararProposta()
   return raiz
 }
 
@@ -391,7 +392,7 @@ export function telaFreteDedicado({ parametros }) {
       }),
       el('p', {
         classe: 'campo__ajuda',
-        texto: 'No iPhone, escolha Imprimir e depois compartilhe — dá para mandar direto no WhatsApp. No computador, escolha "Salvar como PDF".',
+        texto: 'Gera o arquivo PDF pronto. No iPhone abre o compartilhar — manda direto no WhatsApp. No computador, o arquivo é baixado.',
       }),
     ]),
   ])
