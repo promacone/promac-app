@@ -10,8 +10,8 @@
 // Também não carrega nada de fora: funciona sem sinal, no meio da
 // estrada, que é onde o vendedor costuma estar.
 
-import { el, render } from './ui.js?v=20260831113256'
-import { reais } from './frete.js?v=20260831113256'
+import { el, render } from './ui.js?v=20260831113604'
+import { reais } from './frete.js?v=20260831113604'
 
 /** Dados da PROMAC no rodapé. Ajustáveis no painel. */
 export const EMPRESA_PADRAO = {
@@ -50,7 +50,7 @@ export function gerarProposta(dados) {
 
   const folha = el('div', { classe: 'proposta' }, [
     el('div', { classe: 'proposta__topo' }, [
-      el('img', { classe: 'proposta__logo', src: 'icones/logo.png?v=20260831113256', alt: 'PROMAC Transportes' }),
+      el('img', { classe: 'proposta__logo', src: 'icones/logo.png?v=20260831113604', alt: 'PROMAC Transportes' }),
       el('div', { classe: 'proposta__identificacao' }, [
         el('div', { classe: 'proposta__rotulo', texto: 'Proposta comercial' }),
         el('div', { classe: 'proposta__numero', texto: `Nº ${numero}` }),

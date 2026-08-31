@@ -8,14 +8,14 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260831113256'
+} from '../frete.js?v=20260831113604'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260831113256'
-import { rotaComMemoria } from '../qualp.js?v=20260831113256'
-import { campoDeCidade } from '../cidades.js?v=20260831113256'
-import { gerarProposta } from '../proposta.js?v=20260831113256'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260831113256'
+} from '../fracionado.js?v=20260831113604'
+import { rotaComMemoria } from '../qualp.js?v=20260831113604'
+import { campoDeCidade } from '../cidades.js?v=20260831113604'
+import { gerarProposta } from '../proposta.js?v=20260831113604'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260831113604'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -275,11 +275,15 @@ export function telaFreteFracionado({ parametros }) {
           ? ['Valor da NF-e', reais(numero(estado.valorNFe))]
           : null,
       ],
+      // ATENÇÃO: este documento vai para o cliente. Nada de ocupação do
+      // truck, fator, aproveitamento ou preço por quilo — é a conta
+      // interna da PROMAC. Sai o serviço, os repasses e o total.
       valores: [
-        ['Frete peso', reais(r.fretePeso)],
+        ['Frete', reais(r.fretePeso), true],
         r.gris > 0 ? [`GRIS (${percentual(p.gris)} da NF-e)`, reais(r.gris)] : null,
         r.taxas > 0 ? ['Taxas', reais(r.taxas)] : null,
       ],
+      observacoes: 'Valores com impostos inclusos. Frete calculado sobre o peso faturado (o maior entre balança e cubagem).',
       total: r.total,
       empresa: parametros.empresa,
     })

@@ -15,12 +15,12 @@
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js?v=20260831113256'
-import { rotaComMemoria } from '../qualp.js?v=20260831113256'
-import { campoDeCidade } from '../cidades.js?v=20260831113256'
-import { gerarProposta } from '../proposta.js?v=20260831113256'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260831113256'
-import { telaFreteFracionado } from './fracionado.js?v=20260831113256'
+} from '../frete.js?v=20260831113604'
+import { rotaComMemoria } from '../qualp.js?v=20260831113604'
+import { campoDeCidade } from '../cidades.js?v=20260831113604'
+import { gerarProposta } from '../proposta.js?v=20260831113604'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260831113604'
+import { telaFreteFracionado } from './fracionado.js?v=20260831113604'
 
 /** Escolhe entre as duas formas de cotar. */
 export function telaCotacao(sessao) {
@@ -180,16 +180,23 @@ export function telaFreteDedicado({ parametros }) {
         ['Veículo', `${eixos} eixos`],
         numero(estado.valorNFe) > 0 ? ['Valor da NF-e', reais(numero(estado.valorNFe))] : null,
       ],
+      // ATENÇÃO: este documento vai para o cliente.
+      //
+      // Nada de custo, piso pago ao motorista, imposto separado ou
+      // margem. Esses números são a conta interna da PROMAC; na mão do
+      // cliente viram argumento de negociação. Sai só o que ele precisa
+      // para conferir a fatura: o serviço, os repasses e o total.
       valores: [
-        ['Pago ao motorista (piso ANTT)', reais(r.custo)],
+        // O GRIS sai da linha do frete e vira linha própria: no cálculo
+        // ele já está dentro de `total`, e listar os dois somaria duas
+        // vezes na leitura do cliente — as parcelas precisam fechar o
+        // total exibido.
+        ['Frete', reais(r.total - r.gris), true],
         r.gris > 0 ? [`GRIS (${percentual(p.gris)} da NF-e)`, reais(r.gris)] : null,
-        [`Imposto (${percentual(p.imposto)})`, reais(r.imposto)],
-        [`Margem (${percentual(p.margem)})`, reais(r.margem)],
-        ['Venda sem pedágio', reais(r.total), true],
-        [`Pedágio (${eixos} eixos)`, reais(r.pedagio)],
+        r.pedagio > 0 ? [`Pedágio (${eixos} eixos)`, reais(r.pedagio)] : null,
       ],
       total: r.totalComPedagio,
-      observacoes: `Piso mínimo conforme ${RESOLUCAO_ANTT.nome}. O pedágio é repasse: não leva imposto nem margem.`,
+      observacoes: 'Valores com impostos inclusos. O pedágio é repasse, conforme o Vale-Pedágio Obrigatório (Lei 10.209/2001).',
       empresa: parametros.empresa,
     })
   }
