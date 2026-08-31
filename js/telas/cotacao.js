@@ -15,12 +15,12 @@
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js?v=20260831113604'
-import { rotaComMemoria } from '../qualp.js?v=20260831113604'
-import { campoDeCidade } from '../cidades.js?v=20260831113604'
-import { gerarProposta } from '../proposta.js?v=20260831113604'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260831113604'
-import { telaFreteFracionado } from './fracionado.js?v=20260831113604'
+} from '../frete.js?v=20260831113806'
+import { rotaComMemoria } from '../qualp.js?v=20260831113806'
+import { campoDeCidade } from '../cidades.js?v=20260831113806'
+import { gerarProposta } from '../proposta.js?v=20260831113806'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831113806'
+import { telaFreteFracionado } from './fracionado.js?v=20260831113806'
 
 /** Escolhe entre as duas formas de cotar. */
 export function telaCotacao(sessao) {
@@ -84,7 +84,15 @@ export function telaFreteDedicado({ parametros }) {
   const areaTotal = el('div')
   const areaRota = el('div')
   const avisoRota = el('div')
-  const campoCliente = el('input', { type: 'text', placeholder: 'Para quem é a cotação' })
+  const campoCliente = el('input', { type: 'text', placeholder: 'Razão social ou nome' })
+  const campoClienteCnpj = el('input', {
+    type: 'text',
+    inputmode: 'numeric',
+    placeholder: '00.000.000/0001-00',
+    // A máscara entra sozinha: quem cota está com o número seco na mão,
+    // vindo da nota ou do cadastro, e pontuar à mão é onde se erra.
+    oninput: (e) => { e.target.value = mascaraCnpj(e.target.value) },
+  })
 
   const campoDistancia = campoNumerico('distanciaKm', '0', () => { estado.rota = null; desenharRota() })
   const campoPedagio = campoNumerico('tarifaPedagio', '0,00', () => { estado.rota = null; desenharRota() })
@@ -169,6 +177,7 @@ export function telaFreteDedicado({ parametros }) {
 
     gerarProposta({
       cliente: campoCliente.value.trim(),
+      clienteCnpj: campoClienteCnpj.value.trim(),
       titulo: `Frete dedicado — Tabela ${estado.tabela.toUpperCase()}`,
       rota: {
         origem: estado.origem || '—',
@@ -367,7 +376,8 @@ export function telaFreteDedicado({ parametros }) {
 
     el('div', { classe: 'cartao' }, [
       el('div', { classe: 'secao__titulo', texto: 'Proposta para o cliente' }),
-      campo('Nome do cliente', campoCliente),
+      campo('Contratante', campoCliente),
+      campo('CNPJ do contratante', campoClienteCnpj),
       el('button', {
         classe: 'botao',
         texto: 'Gerar proposta em PDF',

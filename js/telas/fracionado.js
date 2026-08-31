@@ -8,14 +8,14 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260831113604'
+} from '../frete.js?v=20260831113806'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260831113604'
-import { rotaComMemoria } from '../qualp.js?v=20260831113604'
-import { campoDeCidade } from '../cidades.js?v=20260831113604'
-import { gerarProposta } from '../proposta.js?v=20260831113604'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260831113604'
+} from '../fracionado.js?v=20260831113806'
+import { rotaComMemoria } from '../qualp.js?v=20260831113806'
+import { campoDeCidade } from '../cidades.js?v=20260831113806'
+import { gerarProposta } from '../proposta.js?v=20260831113806'
+import { el, render, campo, linha, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831113806'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -78,7 +78,15 @@ export function telaFreteFracionado({ parametros }) {
 
   const areaRegioes = el('div', { classe: 'tabelas-preco' })
   const areaVolumes = el('div', { style: 'display:grid;gap:10px' })
-  const campoCliente = el('input', { type: 'text', placeholder: 'Para quem é a cotação' })
+  const campoCliente = el('input', { type: 'text', placeholder: 'Razão social ou nome' })
+  const campoClienteCnpj = el('input', {
+    type: 'text',
+    inputmode: 'numeric',
+    placeholder: '00.000.000/0001-00',
+    // A máscara entra sozinha: quem cota está com o número seco na mão,
+    // vindo da nota ou do cadastro, e pontuar à mão é onde se erra.
+    oninput: (e) => { e.target.value = mascaraCnpj(e.target.value) },
+  })
   const areaAjudaVolumes = el('p', { classe: 'campo__ajuda' })
 
   /** A explicação acompanha a região: baú real numa, cubagem na outra. */
@@ -259,6 +267,7 @@ export function telaFreteFracionado({ parametros }) {
 
     gerarProposta({
       cliente: campoCliente.value.trim(),
+      clienteCnpj: campoClienteCnpj.value.trim(),
       titulo: `Frete fracionado — ${r.regiao.titulo}`,
       rota: {
         origem: estado.origem || '—',
@@ -535,7 +544,8 @@ export function telaFreteFracionado({ parametros }) {
 
     el('div', { classe: 'cartao' }, [
       el('div', { classe: 'secao__titulo', texto: 'Proposta para o cliente' }),
-      campo('Nome do cliente', campoCliente),
+      campo('Contratante', campoCliente),
+      campo('CNPJ do contratante', campoClienteCnpj),
       el('button', {
         classe: 'botao',
         texto: 'Gerar proposta em PDF',

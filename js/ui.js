@@ -143,3 +143,17 @@ export function versaoDoApp() {
 
   return { carimbo, texto: `${dia}/${mes}/${ano} às ${hora}:${minuto}` }
 }
+
+/**
+ * Pontua um CNPJ conforme se digita: 12345678000190 -> 12.345.678/0001-90.
+ *
+ * Aceita colar com ou sem pontuação; guarda no máximo os 14 dígitos.
+ */
+export function mascaraCnpj(texto) {
+  const d = String(texto || '').replace(/\D/g, '').slice(0, 14)
+  if (d.length <= 2) return d
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
+}
