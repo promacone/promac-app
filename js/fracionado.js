@@ -106,20 +106,23 @@ export const REGIOES = [
       posicoes: 14,
       bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
     },
-    aproveitamento: 0.50,
-    // 800 kg, e não os 1.800 do Sul/Sudeste.
+    // 62%, o mesmo do Sul/Sudeste — e não menos, como cheguei a supor.
     //
+    // O Centro-Oeste é a melhor região do país para carga de retorno: o
+    // caminhão sobe com carga geral e desce carregado de grão. Tratar a
+    // região como "difícil de encher" era o que deixava tudo caro.
+    aproveitamento: 0.62,
     // O peso mínimo faturável multiplica junto com a distância: manter
-    // 1.800 kg aqui fazia 500 kg até Goiânia custar R$ 4.060. O custo
-    // fixo de manusear um despacho pequeno não cresce com o km, então o
-    // piso precisa ser menor onde a viagem é mais longa.
-    pesoMinimoFaturavel: 800,
+    // os 1.800 kg do Sul/Sudeste aqui fazia 500 kg até Goiânia custar
+    // R$ 4.060. O custo fixo de manusear um despacho pequeno não cresce
+    // com o km, então o piso precisa ser menor onde a viagem é longa.
+    pesoMinimoFaturavel: 600,
     escalonamento: [
-      { ate: 3000, fator: 1.30 },
+      { ate: 3000, fator: 1.25 },
       { ate: Infinity, fator: 1.00 },
     ],
     despacho: 45,
-    minimo: 1200,
+    minimo: 900,
     distanciaKm: 1200,
     motorCompleto: true,
   },
