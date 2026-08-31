@@ -54,13 +54,20 @@ export const REGIOES = [
     // Nenhum despacho é faturado abaixo disto, por menor que seja a
     // caixa — é o que substitui os antigos fatores por faixa.
     //
-    // Subiu de 100 para 250 kg em 2026-08-31: a 100 kg a carga leve saía
-    // barata demais. É neste número que se mexe quando o problema é só
-    // a ponta pequena, sem tocar no resto da tabela.
-    pesoMinimoFaturavel: 250,
+    // 1.800 kg, escolhido pelo Pedro em 2026-08-31.
+    //
+    // É muito acima do que transportadora grande pratica, e de propósito.
+    // Quem tem rede de consolidação junta carga de dezenas de clientes e
+    // dilui o custo do despacho pequeno; a PROMAC ainda não tem essa
+    // rede, então cada carga pequena consome coleta, planejamento e
+    // espaço quase como uma grande. O preço reflete o custo real dela,
+    // não a média do mercado.
+    //
+    // É neste número que se mexe quando o problema é só a ponta pequena.
+    pesoMinimoFaturavel: 1800,
     // Papelada e manuseio, por despacho.
     despacho: 45,
-    minimo: 180,
+    minimo: 900,
     distanciaKm: 600,
     motorCompleto: true,
   },
