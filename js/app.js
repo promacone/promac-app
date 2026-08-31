@@ -9,15 +9,15 @@ import {
   auth, onAuthStateChanged, signInWithEmailAndPassword,
   createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
   updateProfile, mensagemDeErro, lembrarNesteAparelho,
-} from './firebase.js?v=20260831112454'
-import { buscarMembro, marcarQueEntrou, carregarParametros, carregarAjustesFracionado } from './equipe.js?v=20260831112454'
-import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260831112454'
-import { telaCotacao } from './telas/cotacao.js?v=20260831112454'
-import { telaContratacoes } from './telas/contratacoes.js?v=20260831112454'
-import { telaEquipe } from './telas/equipe.js?v=20260831112454'
-import { telaConfiguracoes } from './telas/configuracoes.js?v=20260831112454'
-import { telaConta } from './telas/conta.js?v=20260831112454'
-import { telaInicio } from './telas/inicio.js?v=20260831112454'
+} from './firebase.js?v=20260831113256'
+import { buscarMembro, marcarQueEntrou, carregarParametros, carregarAjustesFracionado, carregarEmpresa } from './equipe.js?v=20260831113256'
+import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260831113256'
+import { telaCotacao } from './telas/cotacao.js?v=20260831113256'
+import { telaContratacoes } from './telas/contratacoes.js?v=20260831113256'
+import { telaEquipe } from './telas/equipe.js?v=20260831113256'
+import { telaConfiguracoes } from './telas/configuracoes.js?v=20260831113256'
+import { telaConta } from './telas/conta.js?v=20260831113256'
+import { telaInicio } from './telas/inicio.js?v=20260831113256'
 
 // Guarda o app para funcionar sem sinal e evita que o celular fique com
 // telas antigas depois de uma atualização.
@@ -119,6 +119,8 @@ async function conferirAutorizacao() {
   // Os ajustes do motor de fracionado carregam juntos; null significa
   // "use os padrões da região".
   sessao.parametros.fracionado = await carregarAjustesFracionado()
+  // Cabeçalho e rodapé da proposta em PDF.
+  sessao.parametros.empresa = await carregarEmpresa()
   abrirApp()
 }
 

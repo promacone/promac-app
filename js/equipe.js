@@ -6,8 +6,8 @@
 import {
   bd, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs,
   serverTimestamp,
-} from './firebase.js?v=20260831112454'
-import { PARAMETROS_PADRAO } from './frete.js?v=20260831112454'
+} from './firebase.js?v=20260831113256'
+import { PARAMETROS_PADRAO } from './frete.js?v=20260831113256'
 
 /** Normaliza o e-mail: "Joao@" e "joao@" são a mesma pessoa. */
 export function chave(email) {
@@ -188,6 +188,20 @@ function lerRegiao(d) {
   }
 
   return ajustes
+}
+
+/** Dados que aparecem no rodapé da proposta. */
+export async function carregarEmpresa() {
+  try {
+    const registro = await getDoc(doc(bd, 'configuracao', 'empresa'))
+    return registro.exists() ? registro.data() : null
+  } catch {
+    return null
+  }
+}
+
+export async function salvarEmpresa(dados) {
+  await setDoc(doc(bd, 'configuracao', 'empresa'), dados)
 }
 
 export async function salvarAjustesFracionado(regiaoId, ajustes) {

@@ -15,11 +15,12 @@
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js?v=20260831112454'
-import { rotaComMemoria } from '../qualp.js?v=20260831112454'
-import { campoDeCidade } from '../cidades.js?v=20260831112454'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260831112454'
-import { telaFreteFracionado } from './fracionado.js?v=20260831112454'
+} from '../frete.js?v=20260831113256'
+import { rotaComMemoria } from '../qualp.js?v=20260831113256'
+import { campoDeCidade } from '../cidades.js?v=20260831113256'
+import { gerarProposta } from '../proposta.js?v=20260831113256'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento } from '../ui.js?v=20260831113256'
+import { telaFreteFracionado } from './fracionado.js?v=20260831113256'
 
 /** Escolhe entre as duas formas de cotar. */
 export function telaCotacao(sessao) {
@@ -83,6 +84,7 @@ export function telaFreteDedicado({ parametros }) {
   const areaTotal = el('div')
   const areaRota = el('div')
   const avisoRota = el('div')
+  const campoCliente = el('input', { type: 'text', placeholder: 'Para quem é a cotação' })
 
   const campoDistancia = campoNumerico('distanciaKm', '0', () => { estado.rota = null; desenharRota() })
   const campoPedagio = campoNumerico('tarifaPedagio', '0,00', () => { estado.rota = null; desenharRota() })
@@ -104,6 +106,8 @@ export function telaFreteDedicado({ parametros }) {
     return numero(estado.tarifaPedagio)
   }
 
+  let ultimoCalculo = null
+
   function recalcular() {
     const r = calcularFrete({
       distanciaKm: numero(estado.distanciaKm),
@@ -113,6 +117,8 @@ export function telaFreteDedicado({ parametros }) {
       coeficientes: coeficientes(estado.tipo, estado.eixos),
       parametros: parametrosAtuais(),
     })
+
+    ultimoCalculo = r
 
     const semPercentuais = parametros.imposto === 0 && parametrosAtuais().margem === 0
 
@@ -151,6 +157,41 @@ export function telaFreteDedicado({ parametros }) {
         }),
       ]),
     )
+  }
+
+  // ---------- Proposta ----------
+
+  function abrirProposta() {
+    if (!ultimoCalculo) return
+    const r = ultimoCalculo
+    const p = parametrosAtuais()
+    const eixos = estado.eixos
+
+    gerarProposta({
+      cliente: campoCliente.value.trim(),
+      titulo: `Frete dedicado — Tabela ${estado.tabela.toUpperCase()}`,
+      rota: {
+        origem: estado.origem || '—',
+        destino: estado.destino || '—',
+        km: numero(estado.distanciaKm),
+      },
+      carga: [
+        ['Tipo de carga', (TIPOS_DE_CARGA.find((x) => x.id === estado.tipo) || {}).titulo || '—'],
+        ['Veículo', `${eixos} eixos`],
+        numero(estado.valorNFe) > 0 ? ['Valor da NF-e', reais(numero(estado.valorNFe))] : null,
+      ],
+      valores: [
+        ['Pago ao motorista (piso ANTT)', reais(r.custo)],
+        r.gris > 0 ? [`GRIS (${percentual(p.gris)} da NF-e)`, reais(r.gris)] : null,
+        [`Imposto (${percentual(p.imposto)})`, reais(r.imposto)],
+        [`Margem (${percentual(p.margem)})`, reais(r.margem)],
+        ['Venda sem pedágio', reais(r.total), true],
+        [`Pedágio (${eixos} eixos)`, reais(r.pedagio)],
+      ],
+      total: r.totalComPedagio,
+      observacoes: `Piso mínimo conforme ${RESOLUCAO_ANTT.nome}. O pedágio é repasse: não leva imposto nem margem.`,
+      empresa: parametros.empresa,
+    })
   }
 
   // ---------- Rota ----------
@@ -316,6 +357,20 @@ export function telaFreteDedicado({ parametros }) {
 
     el('div', { classe: 'cartao' }, [areaResumo]),
     areaTotal,
+
+    el('div', { classe: 'cartao' }, [
+      el('div', { classe: 'secao__titulo', texto: 'Proposta para o cliente' }),
+      campo('Nome do cliente', campoCliente),
+      el('button', {
+        classe: 'botao',
+        texto: 'Gerar proposta em PDF',
+        onclick: abrirProposta,
+      }),
+      el('p', {
+        classe: 'campo__ajuda',
+        texto: 'No iPhone, escolha Imprimir e depois compartilhe — dá para mandar direto no WhatsApp. No computador, escolha "Salvar como PDF".',
+      }),
+    ]),
   ])
 
   redesenharEixos()

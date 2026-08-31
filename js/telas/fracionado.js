@@ -8,13 +8,14 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260831112454'
+} from '../frete.js?v=20260831113256'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260831112454'
-import { rotaComMemoria } from '../qualp.js?v=20260831112454'
-import { campoDeCidade } from '../cidades.js?v=20260831112454'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260831112454'
+} from '../fracionado.js?v=20260831113256'
+import { rotaComMemoria } from '../qualp.js?v=20260831113256'
+import { campoDeCidade } from '../cidades.js?v=20260831113256'
+import { gerarProposta } from '../proposta.js?v=20260831113256'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260831113256'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -77,6 +78,7 @@ export function telaFreteFracionado({ parametros }) {
 
   const areaRegioes = el('div', { classe: 'tabelas-preco' })
   const areaVolumes = el('div', { style: 'display:grid;gap:10px' })
+  const campoCliente = el('input', { type: 'text', placeholder: 'Para quem é a cotação' })
   const areaAjudaVolumes = el('p', { classe: 'campo__ajuda' })
 
   /** A explicação acompanha a região: baú real numa, cubagem na outra. */
@@ -119,6 +121,8 @@ export function telaFreteFracionado({ parametros }) {
     }
   }
 
+  let ultimoCalculo = null
+
   function recalcular() {
     const carga = totaisDaCarga()
     const r = calcularFracionado({
@@ -135,6 +139,8 @@ export function telaFreteFracionado({ parametros }) {
       calcularFreteDedicado: calcularFrete,
       coeficientes,
     })
+
+    ultimoCalculo = { r, carga }
 
     const temBau = !!r.capacidadeM3
     const motor = !!r.regiao.motorCompleto
@@ -242,6 +248,41 @@ export function telaFreteFracionado({ parametros }) {
         }),
       ]),
     )
+  }
+
+  // ---------- Proposta ----------
+
+  function abrirProposta() {
+    if (!ultimoCalculo) return
+    const { r, carga } = ultimoCalculo
+    const p = parametrosAtuais()
+
+    gerarProposta({
+      cliente: campoCliente.value.trim(),
+      titulo: `Frete fracionado — ${r.regiao.titulo}`,
+      rota: {
+        origem: estado.origem || '—',
+        destino: estado.destino || '—',
+        km: r.distanciaKm,
+      },
+      prazo: `${r.prazo.de} a ${r.prazo.ate} dias úteis`,
+      carga: [
+        ['Volumes', `${carga.quantidade} · ${m3(carga.volumeM3)} m³`],
+        ['Peso real', `${Math.round(carga.pesoKg).toLocaleString('pt-BR')} kg`],
+        ['Peso cubado', `${Math.round(r.peso.cubado).toLocaleString('pt-BR')} kg`],
+        ['Peso faturado', `${Math.round(r.peso.cobravel).toLocaleString('pt-BR')} kg`],
+        numero(estado.valorNFe) > 0
+          ? ['Valor da NF-e', reais(numero(estado.valorNFe))]
+          : null,
+      ],
+      valores: [
+        ['Frete peso', reais(r.fretePeso)],
+        r.gris > 0 ? [`GRIS (${percentual(p.gris)} da NF-e)`, reais(r.gris)] : null,
+        r.taxas > 0 ? ['Taxas', reais(r.taxas)] : null,
+      ],
+      total: r.total,
+      empresa: parametros.empresa,
+    })
   }
 
   // ---------- Volumes ----------
@@ -487,6 +528,20 @@ export function telaFreteFracionado({ parametros }) {
 
     el('div', { classe: 'cartao' }, [areaResumo]),
     areaTotal,
+
+    el('div', { classe: 'cartao' }, [
+      el('div', { classe: 'secao__titulo', texto: 'Proposta para o cliente' }),
+      campo('Nome do cliente', campoCliente),
+      el('button', {
+        classe: 'botao',
+        texto: 'Gerar proposta em PDF',
+        onclick: abrirProposta,
+      }),
+      el('p', {
+        classe: 'campo__ajuda',
+        texto: 'No iPhone, escolha Imprimir e depois compartilhe — dá para mandar direto no WhatsApp. No computador, escolha "Salvar como PDF".',
+      }),
+    ]),
   ])
 
   desenharRegioes()

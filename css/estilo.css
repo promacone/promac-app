@@ -1298,3 +1298,134 @@ body.arrastando .ficha { cursor: grabbing; }
 /* Faixas de margem no painel de Ajustes. */
 .faixa { display: grid; gap: 6px; margin-top: 10px; }
 .faixa__campos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* ---------- Proposta comercial em PDF ---------- */
+
+/* Fora da impressão a folha não existe na tela. */
+#area-proposta { display: none; }
+
+@media print {
+  /* Só a proposta vai para o papel. */
+  body.imprimindo > *:not(#area-proposta) { display: none !important; }
+
+  body.imprimindo {
+    background: #fff;
+    color: #14181f;
+  }
+
+  #area-proposta { display: block; }
+
+  @page { size: A4; margin: 14mm 12mm; }
+}
+
+.proposta {
+  background: #fff;
+  color: #14181f;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 190mm;
+  margin: 0 auto;
+}
+
+.proposta__topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #22a6e8;
+}
+
+.proposta__logo { width: 190px; height: auto; }
+
+.proposta__identificacao { text-align: right; }
+
+.proposta__rotulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6a7385;
+}
+
+.proposta__numero { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.proposta__data { font-size: 11px; color: #6a7385; }
+
+.proposta__cliente {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0;
+  padding: 12px 14px;
+  background: #f4f7fb;
+  border-radius: 8px;
+}
+
+.proposta__campo { display: flex; gap: 10px; }
+
+.proposta__chave {
+  min-width: 90px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6a7385;
+  padding-top: 2px;
+}
+
+.proposta__valor { font-weight: 700; font-size: 13px; }
+
+.proposta__secao { margin-top: 16px; }
+
+.proposta__secaoTitulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #22a6e8;
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #dbe3ee;
+}
+
+.proposta__linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.proposta__linha--destaque { font-weight: 700; }
+
+.proposta__numeroValor { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.proposta__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #0f1730;
+  color: #fff;
+  /* Sem isto o navegador imprime o fundo escuro em branco. */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.proposta__total strong { font-size: 21px; letter-spacing: -0.02em; }
+
+.proposta__condicoes { margin-top: 18px; }
+.proposta__condicoes ul { margin: 0; padding-left: 18px; }
+.proposta__condicoes li { margin-bottom: 3px; }
+
+.proposta__rodape {
+  margin-top: 22px;
+  padding-top: 10px;
+  border-top: 1px solid #dbe3ee;
+  font-size: 10.5px;
+  color: #6a7385;
+  text-align: center;
+}
+
+.proposta__rodape div:first-child { font-weight: 700; color: #14181f; }

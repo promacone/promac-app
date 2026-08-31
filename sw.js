@@ -8,7 +8,7 @@
 // sem sinal, entrega a última que funcionou. Assim o vendedor no meio da
 // estrada ainda abre o app e cota um frete, mesmo sem 4G.
 
-const CACHE = 'promac-20260831112454'
+const CACHE = 'promac-20260831113256'
 
 // O que vale a pena guardar para funcionar offline.
 const ESSENCIAIS = [

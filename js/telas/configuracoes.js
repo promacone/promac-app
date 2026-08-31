@@ -4,11 +4,12 @@
 // acesso e mexer em quanto se cobra são assuntos diferentes, e misturá-los
 // numa tela só confundia na hora de achar.
 
-import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260831112454'
-import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260831112454'
-import { regiao, REGIOES } from '../fracionado.js?v=20260831112454'
-import { mensagemDeErro } from '../firebase.js?v=20260831112454'
-import { el, render, campo, seletor, mostrarAviso, comCarregamento, versaoDoApp } from '../ui.js?v=20260831112454'
+import { salvarParametros, salvarAjustesFracionado, salvarEmpresa } from '../equipe.js?v=20260831113256'
+import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260831113256'
+import { regiao, REGIOES } from '../fracionado.js?v=20260831113256'
+import { EMPRESA_PADRAO } from '../proposta.js?v=20260831113256'
+import { mensagemDeErro } from '../firebase.js?v=20260831113256'
+import { el, render, campo, seletor, mostrarAviso, comCarregamento, versaoDoApp } from '../ui.js?v=20260831113256'
 
 export function telaConfiguracoes(sessao) {
   const ehAdministrador = sessao.membro.papel === 'master'
@@ -129,6 +130,8 @@ export function telaConfiguracoes(sessao) {
       ]),
     ]),
 
+    cartaoEmpresa(),
+
     // Acaba com a dúvida de "será que atualizou?".
     el('div', { classe: 'cartao' }, [
       el('div', { classe: 'secao__titulo', texto: 'Versão do app' }),
@@ -139,6 +142,76 @@ export function telaConfiguracoes(sessao) {
       }),
     ]),
   ])
+
+  /**
+   * Dados que saem no rodapé da proposta em PDF.
+   *
+   * Ficam no servidor, e não no código, porque endereço e telefone
+   * mudam — e quando mudam, todo mundo precisa passar a mandar a
+   * proposta certa no mesmo dia.
+   */
+  function cartaoEmpresa() {
+    const atual = { ...EMPRESA_PADRAO, ...(sessao.parametros.empresa || {}) }
+    const avisoEmp = el('div')
+
+    const texto = (valor, exemplo) => el('input', {
+      type: 'text', value: valor || '', placeholder: exemplo,
+      disabled: !ehAdministrador,
+    })
+
+    const nome = texto(atual.nome, 'PROMAC TRANSPORTES')
+    const cnpj = texto(atual.cnpj, '00.000.000/0001-00')
+    const endereco = texto(atual.endereco, 'Rua, número — Cidade/UF')
+    const telefone = texto(atual.telefone, '(42) 99999-9999')
+    const email = texto(atual.email, 'comercial@promactransportes.com.br')
+    const validade = texto(atual.validadeDias, '7')
+
+    async function salvarDados(botao) {
+      mostrarAviso(avisoEmp, '')
+      const dias = parseInt(validade.value, 10)
+
+      await comCarregamento(botao, async () => {
+        try {
+          const dados = {
+            nome: nome.value.trim() || EMPRESA_PADRAO.nome,
+            cnpj: cnpj.value.trim(),
+            endereco: endereco.value.trim(),
+            telefone: telefone.value.trim(),
+            email: email.value.trim(),
+            validadeDias: Number.isFinite(dias) && dias > 0 ? dias : 7,
+          }
+          await salvarEmpresa(dados)
+          sessao.parametros.empresa = dados
+          mostrarAviso(avisoEmp, 'Dados salvos. As próximas propostas já saem com eles.', 'ok')
+        } catch (erro) {
+          mostrarAviso(avisoEmp, mensagemDeErro(erro))
+        }
+      })
+    }
+
+    return el('div', { classe: 'cartao' }, [
+      el('div', { classe: 'secao__titulo', texto: 'Dados da proposta em PDF' }),
+      el('p', {
+        classe: 'campo__ajuda',
+        texto: 'Aparecem no rodapé de toda proposta gerada, no dedicado e no fracionado.',
+      }),
+      campo('Razão social', nome),
+      campo('CNPJ', cnpj),
+      campo('Endereço', endereco),
+      campo('Telefone', telefone),
+      campo('E-mail', email),
+      campo('Validade da proposta (dias)', validade),
+      avisoEmp,
+      ehAdministrador
+        ? el('button', {
+            classe: 'botao',
+            style: 'margin-top:6px',
+            texto: 'Salvar dados da proposta',
+            onclick: (evento) => salvarDados(evento.currentTarget),
+          })
+        : null,
+    ])
+  }
 
   /**
    * Motor do frete fracionado, por região.
