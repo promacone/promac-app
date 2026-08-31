@@ -1,1 +1,5 @@
 .DS_Store
+
+# Dados financeiros reais usados só em teste local — nunca podem subir,
+# o repositório do site é público.
+teste-contabilidade-dados.json

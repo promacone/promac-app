@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Teste da contabilidade — PROMAC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div id="alvo" class="conteudo"></div>
+<script type="module">
+// Exercita a tela com os dados reais das planilhas, sem Firestore.
+const v = '?t=' + Date.now()
+const { telaContabilidade } = await import('./js/telas/contabilidade.js' + v)
+
+const banco = {}
+const dados = await (await fetch('./teste-contabilidade-dados.json' + v)).json()
+for (const [id, mes] of Object.entries(dados.meses)) banco[id] = mes
+
+const repositorio = {
+  async listar() { return JSON.parse(JSON.stringify(banco)) },
+  async salvar(id, mes) { banco[id] = mes; window.ultimoSalvo = { id, mes } },
+}
+
+document.querySelector('#alvo').append(telaContabilidade(
+  { usuario: { email: 'x@promac.com' }, membro: { papel: 'master' } },
+  repositorio,
+))
+window.pronto = true
+</script>
+</body>
+</html>

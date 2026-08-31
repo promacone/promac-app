@@ -9,15 +9,16 @@ import {
   auth, onAuthStateChanged, signInWithEmailAndPassword,
   createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
   updateProfile, mensagemDeErro, lembrarNesteAparelho,
-} from './firebase.js?v=20260831115307'
-import { buscarMembro, marcarQueEntrou, carregarParametros, carregarAjustesFracionado, carregarEmpresa } from './equipe.js?v=20260831115307'
-import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260831115307'
-import { telaCotacao } from './telas/cotacao.js?v=20260831115307'
-import { telaContratacoes } from './telas/contratacoes.js?v=20260831115307'
-import { telaEquipe } from './telas/equipe.js?v=20260831115307'
-import { telaConfiguracoes } from './telas/configuracoes.js?v=20260831115307'
-import { telaConta } from './telas/conta.js?v=20260831115307'
-import { telaInicio } from './telas/inicio.js?v=20260831115307'
+} from './firebase.js?v=20260831154400'
+import { buscarMembro, marcarQueEntrou, carregarParametros, carregarAjustesFracionado, carregarEmpresa } from './equipe.js?v=20260831154400'
+import { $, el, render, mostrarAviso, comCarregamento, icone, ICONES } from './ui.js?v=20260831154400'
+import { telaCotacao } from './telas/cotacao.js?v=20260831154400'
+import { telaContratacoes } from './telas/contratacoes.js?v=20260831154400'
+import { telaEquipe } from './telas/equipe.js?v=20260831154400'
+import { telaConfiguracoes } from './telas/configuracoes.js?v=20260831154400'
+import { telaContabilidade } from './telas/contabilidade.js?v=20260831154400'
+import { telaConta } from './telas/conta.js?v=20260831154400'
+import { telaInicio } from './telas/inicio.js?v=20260831154400'
 
 // Guarda o app para funcionar sem sinal e evita que o celular fique com
 // telas antigas depois de uma atualização.
@@ -276,6 +277,16 @@ function modulosDisponiveis() {
     // Equipe só existe para quem administra — os colaboradores nem veem
     // que ela existe. Quem garante de verdade são as regras do servidor;
     // aqui é só a interface acompanhando.
+    // Contabilidade é só do administrador — as regras do servidor nem
+    // deixam os outros lerem a coleção; esconder o módulo acompanha.
+    ...(ehAdministrador ? [{
+      id: 'contabilidade',
+      titulo: 'Contabilidade',
+      descricao: 'Despesas, receitas e vendas, mês a mês',
+      icone: ICONES.contabilidade,
+      cor: '#e8618c',
+      tela: () => telaContabilidade(sessao),
+    }] : []),
     ...(ehAdministrador ? [{
       id: 'equipe',
       titulo: 'Equipe',
