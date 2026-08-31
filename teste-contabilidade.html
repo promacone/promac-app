@@ -9,23 +9,41 @@
 <body>
 <div id="alvo" class="conteudo"></div>
 <script type="module">
-// Exercita a tela com os dados reais das planilhas, sem Firestore.
+// Exercita a tela sem OMIE e sem login: intercepta o módulo omie.js
+// registrando um substituto no mapa de imports.
 const v = '?t=' + Date.now()
-const { telaContabilidade } = await import('./js/telas/contabilidade.js' + v)
+const dia = 86400000
+const hoje = Date.now()
 
-const banco = {}
-const dados = await (await fetch('./teste-contabilidade-dados.json' + v)).json()
-for (const [id, mes] of Object.entries(dados.meses)) banco[id] = mes
+const falso = `
+  export async function listarContas(tipo) {
+    if (tipo === 'receber') return [
+      { id: 1, documento: '690', clienteCodigo: 10, valor: 5590, vencimento: ${hoje - 3*dia}, status: 'ATRASADO' },
+      { id: 2, documento: '702', clienteCodigo: 11, valor: 12500, vencimento: ${hoje}, status: 'A VENCER' },
+      { id: 3, documento: '703', clienteCodigo: 10, valor: 3980, vencimento: ${hoje + 5*dia}, status: 'A VENCER' },
+      { id: 4, documento: '650', clienteCodigo: 12, valor: 9800, vencimento: ${hoje - 30*dia}, status: 'RECEBIDO' },
+    ]
+    return [
+      { id: 5, documento: 'NF 88', clienteCodigo: 20, valor: 7297.86, vencimento: ${hoje + 2*dia}, status: 'A VENCER' },
+      { id: 6, documento: 'NF 91', clienteCodigo: 21, valor: 2000, vencimento: ${hoje - dia}, status: 'ATRASADO' },
+    ]
+  }
+  export async function mapaDeClientes() {
+    return new Map([[10, 'GRADISA'], [11, 'MATEUS SUPERMERCADOS'], [12, 'BONANZA'], [20, 'MARCELO CAMINHÃO'], [21, 'OUTLET DOS PNEUS']])
+  }
+  export function erroDoOmie(e) { return String(e?.message || e) }
+`
+const blob = URL.createObjectURL(new Blob([falso], { type: 'text/javascript' }))
 
-const repositorio = {
-  async listar() { return JSON.parse(JSON.stringify(banco)) },
-  async salvar(id, mes) { banco[id] = mes; window.ultimoSalvo = { id, mes } },
-}
+// Importmap não funciona com módulos já carregados; carrega a tela por
+// texto, trocando o import do omie.js pelo substituto.
+const codigo = await (await fetch('./js/telas/contabilidade.js' + v)).text()
+const trocado = codigo.replace(/from '\.\.\/omie\.js[^']*'/, `from '${blob}'`)
+  .replace(/from '\.\.\/(frete|ui)\.js[^']*'/g, (m, nome) => `from '${new URL('./js/' + nome + '.js', location.href)}${v}'`)
+const tela = URL.createObjectURL(new Blob([trocado], { type: 'text/javascript' }))
+const { telaContabilidade } = await import(tela)
 
-document.querySelector('#alvo').append(telaContabilidade(
-  { usuario: { email: 'x@promac.com' }, membro: { papel: 'master' } },
-  repositorio,
-))
+document.querySelector('#alvo').append(telaContabilidade())
 window.pronto = true
 </script>
 </body>
