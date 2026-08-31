@@ -4,11 +4,11 @@
 // acesso e mexer em quanto se cobra são assuntos diferentes, e misturá-los
 // numa tela só confundia na hora de achar.
 
-import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260831105641'
-import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260831105641'
-import { regiao } from '../fracionado.js?v=20260831105641'
-import { mensagemDeErro } from '../firebase.js?v=20260831105641'
-import { el, render, campo, mostrarAviso, comCarregamento, versaoDoApp } from '../ui.js?v=20260831105641'
+import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260831105904'
+import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260831105904'
+import { regiao } from '../fracionado.js?v=20260831105904'
+import { mensagemDeErro } from '../firebase.js?v=20260831105904'
+import { el, render, campo, mostrarAviso, comCarregamento, versaoDoApp } from '../ui.js?v=20260831105904'
 
 export function telaConfiguracoes(sessao) {
   const ehAdministrador = sessao.membro.papel === 'master'

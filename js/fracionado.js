@@ -65,6 +65,19 @@ export const REGIOES = [
     //
     // É neste número que se mexe quando o problema é só a ponta pequena.
     pesoMinimoFaturavel: 1800,
+    // Escalonamento do preço por quilo, como nas tabelas do setor: os
+    // primeiros quilos custam mais caro e o preço cai por faixa.
+    //
+    // A conta é progressiva, igual imposto de renda: cada faixa cobra
+    // só a parte do peso que cai dentro dela. Por isso a curva não tem
+    // degrau — atravessar uma faixa nunca faz o preço saltar nem cair.
+    //
+    // Ajustado em 2026-08-31 a pedido do Pedro: o trecho de 500 kg a
+    // 3 t estava barato demais.
+    escalonamento: [
+      { ate: 3000, fator: 1.30 },
+      { ate: Infinity, fator: 1.00 },
+    ],
     // Papelada e manuseio, por despacho.
     despacho: 45,
     minimo: 900,
@@ -228,7 +241,7 @@ export function calcularFracionado({
     : 0
 
   const despacho = temCarga && r.motorCompleto ? (r.despacho || 0) : 0
-  const rateio = pesoFaturavel * precoPorKg
+  const rateio = freteEscalonado(pesoFaturavel, precoPorKg, r.escalonamento)
   const proposto = rateio + despacho
 
   // 5) As travas, do chão ao teto.
@@ -281,6 +294,30 @@ export function calcularFracionado({
     taxas,
     total,
   }
+}
+
+/**
+ * Frete-peso cobrando cada faixa pela parte do peso que cai nela.
+ *
+ * Sem escalonamento (regiões ainda não calibradas), é peso × preço.
+ */
+export function freteEscalonado(pesoKg, precoPorKg, escalonamento) {
+  if (!escalonamento || !escalonamento.length) return pesoKg * precoPorKg
+
+  let restante = Math.max(0, pesoKg)
+  let anterior = 0
+  let total = 0
+
+  for (const faixa of escalonamento) {
+    if (restante <= 0) break
+    const largura = faixa.ate - anterior
+    const dentro = Math.min(restante, largura)
+    total += dentro * precoPorKg * faixa.fator
+    restante -= dentro
+    anterior = faixa.ate
+  }
+
+  return total
 }
 
 /** Em qual região cai uma UF? Para o campo de cidade sugerir sozinho. */
