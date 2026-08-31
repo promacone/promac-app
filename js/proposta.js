@@ -10,8 +10,8 @@
 // Também não carrega nada de fora: funciona sem sinal, no meio da
 // estrada, que é onde o vendedor costuma estar.
 
-import { el, render } from './ui.js?v=20260831113806'
-import { reais } from './frete.js?v=20260831113806'
+import { el, render } from './ui.js?v=20260831114030'
+import { reais } from './frete.js?v=20260831114030'
 
 /** Dados da PROMAC no rodapé. Ajustáveis no painel. */
 export const EMPRESA_PADRAO = {
@@ -50,7 +50,7 @@ export function gerarProposta(dados) {
 
   const folha = el('div', { classe: 'proposta' }, [
     el('div', { classe: 'proposta__topo' }, [
-      el('img', { classe: 'proposta__logo', src: 'icones/logo.png?v=20260831113806', alt: 'PROMAC Transportes' }),
+      el('img', { classe: 'proposta__logo', src: 'icones/logo.png?v=20260831114030', alt: 'PROMAC Transportes' }),
       el('div', { classe: 'proposta__identificacao' }, [
         el('div', { classe: 'proposta__rotulo', texto: 'Proposta comercial' }),
         el('div', { classe: 'proposta__numero', texto: `Nº ${numero}` }),
@@ -97,7 +97,9 @@ export function gerarProposta(dados) {
         el('li', { texto: `Proposta válida até ${dataCurta(validade)}.` }),
         el('li', { texto: 'Valores sujeitos a conferência de peso e cubagem no embarque.' }),
         el('li', { texto: 'Pedágio e GRIS conforme discriminado acima.' }),
-        dados.observacoes ? el('li', { texto: dados.observacoes }) : null,
+        // Observações do vendedor: cada linha digitada vira um item, para
+        // a lista sair alinhada com as condições fixas.
+        ...listaDeObservacoes(dados.observacoes),
       ]),
     ]),
 
@@ -110,6 +112,17 @@ export function gerarProposta(dados) {
   ])
 
   imprimir(folha)
+}
+
+/** Aceita texto (com quebras de linha) ou lista; devolve os <li>. */
+function listaDeObservacoes(observacoes) {
+  const linhas = (Array.isArray(observacoes) ? observacoes : [observacoes])
+    .filter(Boolean)
+    .flatMap((texto) => String(texto).split('\n'))
+    .map((linha) => linha.trim())
+    .filter(Boolean)
+
+  return linhas.map((linha) => el('li', { texto: linha }))
 }
 
 function secao(titulo, linhas) {

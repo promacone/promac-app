@@ -15,12 +15,12 @@
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js?v=20260831113806'
-import { rotaComMemoria } from '../qualp.js?v=20260831113806'
-import { campoDeCidade } from '../cidades.js?v=20260831113806'
-import { gerarProposta } from '../proposta.js?v=20260831113806'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831113806'
-import { telaFreteFracionado } from './fracionado.js?v=20260831113806'
+} from '../frete.js?v=20260831114030'
+import { rotaComMemoria } from '../qualp.js?v=20260831114030'
+import { campoDeCidade } from '../cidades.js?v=20260831114030'
+import { gerarProposta } from '../proposta.js?v=20260831114030'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831114030'
+import { telaFreteFracionado } from './fracionado.js?v=20260831114030'
 
 /** Escolhe entre as duas formas de cotar. */
 export function telaCotacao(sessao) {
@@ -92,6 +92,10 @@ export function telaFreteDedicado({ parametros }) {
     // A máscara entra sozinha: quem cota está com o número seco na mão,
     // vindo da nota ou do cadastro, e pontuar à mão é onde se erra.
     oninput: (e) => { e.target.value = mascaraCnpj(e.target.value) },
+  })
+  const campoObs = el('textarea', {
+    rows: 3,
+    placeholder: 'Ex.: Coleta agendada com 24h de antecedência. Pagamento em 28 dias.',
   })
 
   const campoDistancia = campoNumerico('distanciaKm', '0', () => { estado.rota = null; desenharRota() })
@@ -205,7 +209,7 @@ export function telaFreteDedicado({ parametros }) {
         r.pedagio > 0 ? [`Pedágio (${eixos} eixos)`, reais(r.pedagio)] : null,
       ],
       total: r.totalComPedagio,
-      observacoes: 'Valores com impostos inclusos. O pedágio é repasse, conforme o Vale-Pedágio Obrigatório (Lei 10.209/2001).',
+      observacoes: ['Valores com impostos inclusos. O pedágio é repasse, conforme o Vale-Pedágio Obrigatório (Lei 10.209/2001).', campoObs.value],
       empresa: parametros.empresa,
     })
   }
@@ -378,6 +382,8 @@ export function telaFreteDedicado({ parametros }) {
       el('div', { classe: 'secao__titulo', texto: 'Proposta para o cliente' }),
       campo('Contratante', campoCliente),
       campo('CNPJ do contratante', campoClienteCnpj),
+      campo('Observações da proposta', campoObs,
+        'Sai na seção Condições do PDF. Cada linha vira um item da lista.'),
       el('button', {
         classe: 'botao',
         texto: 'Gerar proposta em PDF',
