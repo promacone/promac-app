@@ -50,13 +50,17 @@ export const REGIOES = [
     // Quanto do truck viaja vendido, na média do mês. É o desconto de
     // ociosidade que o setor manda aplicar: o caminhão não fecha lotado
     // todo dia, e quem paga essa folga é a tabela.
-    aproveitamento: 0.70,
+    aproveitamento: 0.62,
     // Nenhum despacho é faturado abaixo disto, por menor que seja a
     // caixa — é o que substitui os antigos fatores por faixa.
-    pesoMinimoFaturavel: 100,
+    //
+    // Subiu de 100 para 250 kg em 2026-08-31: a 100 kg a carga leve saía
+    // barata demais. É neste número que se mexe quando o problema é só
+    // a ponta pequena, sem tocar no resto da tabela.
+    pesoMinimoFaturavel: 250,
     // Papelada e manuseio, por despacho.
-    despacho: 30,
-    minimo: 120,
+    despacho: 45,
+    minimo: 180,
     distanciaKm: 600,
     motorCompleto: true,
   },
