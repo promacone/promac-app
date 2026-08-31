@@ -124,3 +124,22 @@ export const ICONES = {
   configuracoes: 'M19.14 12.94a7.07 7.07 0 000-1.88l2.03-1.58a.5.5 0 00.12-.64l-1.92-3.32a.5.5 0 00-.6-.22l-2.39.96a7.03 7.03 0 00-1.62-.94l-.36-2.54a.5.5 0 00-.5-.42h-3.84a.5.5 0 00-.5.42l-.36 2.54c-.58.24-1.12.56-1.62.94l-2.39-.96a.5.5 0 00-.6.22L2.67 8.84a.5.5 0 00.12.64l2.03 1.58a7.07 7.07 0 000 1.88l-2.03 1.58a.5.5 0 00-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.58-.24 1.12-.56 1.62-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 00-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1112 8.5a3.5 3.5 0 010 7z',
   conta: 'M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.4 0-9 2.2-9 5v3h18v-3c0-2.8-4.6-5-9-5z',
 }
+
+/**
+ * Qual versão do app está rodando.
+ *
+ * Sai do próprio endereço deste arquivo, que o publicar.py carimba a
+ * cada publicação. Serve para acabar com a dúvida de "será que
+ * atualizou?": em vez de comparar preços de cabeça, a pessoa lê a data
+ * na tela de Ajustes e compara com a que eu digo aqui.
+ */
+export function versaoDoApp() {
+  const carimbo = new URL(import.meta.url).searchParams.get('v')
+  if (!carimbo || carimbo.length < 14) return { carimbo: null, texto: 'versão de desenvolvimento' }
+
+  const [ano, mes, dia, hora, minuto] =
+    [carimbo.slice(0, 4), carimbo.slice(4, 6), carimbo.slice(6, 8),
+     carimbo.slice(8, 10), carimbo.slice(10, 12)]
+
+  return { carimbo, texto: `${dia}/${mes}/${ano} às ${hora}:${minuto}` }
+}

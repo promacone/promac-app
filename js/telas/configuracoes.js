@@ -4,11 +4,11 @@
 // acesso e mexer em quanto se cobra são assuntos diferentes, e misturá-los
 // numa tela só confundia na hora de achar.
 
-import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260831105449'
-import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260831105449'
-import { regiao } from '../fracionado.js?v=20260831105449'
-import { mensagemDeErro } from '../firebase.js?v=20260831105449'
-import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260831105449'
+import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260831105641'
+import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260831105641'
+import { regiao } from '../fracionado.js?v=20260831105641'
+import { mensagemDeErro } from '../firebase.js?v=20260831105641'
+import { el, render, campo, mostrarAviso, comCarregamento, versaoDoApp } from '../ui.js?v=20260831105641'
 
 export function telaConfiguracoes(sessao) {
   const ehAdministrador = sessao.membro.papel === 'master'
@@ -119,6 +119,16 @@ export function telaConfiguracoes(sessao) {
         `${RESOLUCAO_ANTT.nome}, vigente desde ${RESOLUCAO_ANTT.vigenteDesde}. `,
         'A ANTT republica esses valores algumas vezes por ano — quando sair resolução nova, me avise para atualizar.',
       ]),
+    ]),
+
+    // Acaba com a dúvida de "será que atualizou?".
+    el('div', { classe: 'cartao' }, [
+      el('div', { classe: 'secao__titulo', texto: 'Versão do app' }),
+      el('p', { classe: 'campo__ajuda', texto: `Publicada em ${versaoDoApp().texto}.` }),
+      el('p', {
+        classe: 'campo__ajuda',
+        texto: 'Se essa data estiver atrasada, o aparelho guardou uma cópia antiga: no iPhone, apague o ícone da tela de início e adicione de novo; no computador, segure Shift e recarregue.',
+      }),
     ]),
   ])
 
