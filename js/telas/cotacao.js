@@ -15,12 +15,12 @@
 import {
   TIPOS_DE_CARGA, RESOLUCAO_ANTT, coeficientes, eixosDisponiveis,
   calcularFrete, reais, percentual, numero,
-} from '../frete.js?v=20260831114610'
-import { rotaComMemoria } from '../qualp.js?v=20260831114610'
-import { campoDeCidade } from '../cidades.js?v=20260831114610'
-import { gerarProposta, prepararProposta } from '../proposta.js?v=20260831114610'
-import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831114610'
-import { telaFreteFracionado } from './fracionado.js?v=20260831114610'
+} from '../frete.js?v=20260831115307'
+import { rotaComMemoria } from '../qualp.js?v=20260831115307'
+import { campoDeCidade } from '../cidades.js?v=20260831115307'
+import { gerarProposta, prepararProposta } from '../proposta.js?v=20260831115307'
+import { el, render, campo, linha, seletor, mostrarAviso, comCarregamento, mascaraCnpj } from '../ui.js?v=20260831115307'
+import { telaFreteFracionado } from './fracionado.js?v=20260831115307'
 
 /** Escolhe entre as duas formas de cotar. */
 export function telaCotacao(sessao) {
@@ -70,6 +70,11 @@ export function telaFreteDedicado({ parametros }) {
     valorNFe: '',
     tarifaPedagio: '',
     tabela: 'a',
+    // Mais de um caminhão para a mesma carga: frete e pedágio
+    // multiplicam. O GRIS não — ele é sobre a nota, que é uma só.
+    quantidadeVeiculos: '1',
+    // Serviço de munck na carga ou descarga, quando o cliente pede.
+    munck: '',
     // Preenchido quando a Qualp responde; some se o vendedor mexer na
     // distância ou no pedágio na mão.
     rota: null,
@@ -121,6 +126,11 @@ export function telaFreteDedicado({ parametros }) {
 
   let ultimoCalculo = null
 
+  function quantidadeDeVeiculos() {
+    const n = Math.round(numero(estado.quantidadeVeiculos))
+    return Number.isFinite(n) && n >= 1 ? n : 1
+  }
+
   function recalcular() {
     const r = calcularFrete({
       distanciaKm: numero(estado.distanciaKm),
@@ -130,8 +140,6 @@ export function telaFreteDedicado({ parametros }) {
       coeficientes: coeficientes(estado.tipo, estado.eixos),
       parametros: parametrosAtuais(),
     })
-
-    ultimoCalculo = r
 
     const semPercentuais = parametros.imposto === 0 && parametrosAtuais().margem === 0
 
@@ -160,13 +168,28 @@ export function telaFreteDedicado({ parametros }) {
       }),
     )
 
+    const qtd = quantidadeDeVeiculos()
+    const munck = Math.max(0, numero(estado.munck))
+
+    // O frete por veículo (sem o GRIS, que é da nota e não se repete)
+    // multiplica pelos caminhões; pedágio idem; munck soma uma vez.
+    const fretePorVeiculo = r.total - r.gris
+    const totalProposta = fretePorVeiculo * qtd + r.gris + r.pedagio * qtd + munck
+
+    ultimoCalculo = { ...r, qtd, munck, fretePorVeiculo, totalProposta }
+
+    const detalhes = []
+    if (qtd > 1) detalhes.push(`${qtd} veículos × ${reais(fretePorVeiculo + r.pedagio)}`)
+    else detalhes.push(`Sem o pedágio: ${reais(r.total)}`)
+    if (munck > 0) detalhes.push(`munck ${reais(munck)}`)
+
     render(areaTotal,
       el('div', { classe: 'total' }, [
         el('div', { classe: 'total__rotulo', texto: 'Total ao cliente' }),
-        el('div', { classe: 'total__valor', texto: reais(r.totalComPedagio) }),
+        el('div', { classe: 'total__valor', texto: reais(totalProposta) }),
         el('div', {
           classe: 'total__secundario',
-          texto: `Sem o pedágio: ${reais(r.total)}`,
+          texto: detalhes.join(' + '),
         }),
       ]),
     )
@@ -191,7 +214,7 @@ export function telaFreteDedicado({ parametros }) {
       },
       carga: [
         ['Tipo de carga', (TIPOS_DE_CARGA.find((x) => x.id === estado.tipo) || {}).titulo || '—'],
-        ['Veículo', `${eixos} eixos`],
+        ['Veículo', r.qtd > 1 ? `${r.qtd} × ${eixos} eixos` : `${eixos} eixos`],
         numero(estado.valorNFe) > 0 ? ['Valor da NF-e', reais(numero(estado.valorNFe))] : null,
       ],
       // ATENÇÃO: este documento vai para o cliente.
@@ -201,15 +224,17 @@ export function telaFreteDedicado({ parametros }) {
       // cliente viram argumento de negociação. Sai só o que ele precisa
       // para conferir a fatura: o serviço, os repasses e o total.
       valores: [
-        // O GRIS sai da linha do frete e vira linha própria: no cálculo
-        // ele já está dentro de `total`, e listar os dois somaria duas
-        // vezes na leitura do cliente — as parcelas precisam fechar o
-        // total exibido.
-        ['Frete', reais(r.total - r.gris), true],
+        // O GRIS fica em linha própria (dentro de `total` no cálculo,
+        // seria contado duas vezes) e não multiplica por veículo: é
+        // sobre a nota, que é uma só. Frete e pedágio multiplicam.
+        [r.qtd > 1 ? `Frete (${r.qtd} veículos)` : 'Frete', reais(r.fretePorVeiculo * r.qtd), true],
         r.gris > 0 ? [`GRIS (${percentual(p.gris)} da NF-e)`, reais(r.gris)] : null,
-        r.pedagio > 0 ? [`Pedágio (${eixos} eixos)`, reais(r.pedagio)] : null,
+        r.pedagio > 0
+          ? [`Pedágio (${eixos} eixos${r.qtd > 1 ? ` × ${r.qtd}` : ''})`, reais(r.pedagio * r.qtd)]
+          : null,
+        r.munck > 0 ? ['Munck', reais(r.munck)] : null,
       ],
-      total: r.totalComPedagio,
+      total: r.totalProposta,
       observacoes: ['Valores com impostos inclusos. O pedágio é repasse, conforme o Vale-Pedágio Obrigatório (Lei 10.209/2001).', campoObs.value],
       empresa: parametros.empresa,
     })
@@ -369,6 +394,14 @@ export function telaFreteDedicado({ parametros }) {
       campo('Valor da NF-e (R$)', campoNumerico('valorNFe', '0,00')),
       campo('Pedágio por eixo (R$)', campoPedagio,
         'Preenchido pela busca de rota. Digite aqui só para cotar sem consultar.'),
+    ]),
+
+    el('div', { classe: 'cartao' }, [
+      el('div', { classe: 'secao__titulo', texto: 'Veículos e serviços' }),
+      campo('Quantidade de veículos', campoNumerico('quantidadeVeiculos', '1'),
+        'Acima de 1, o frete e o pedágio multiplicam pelo número de caminhões.'),
+      campo('Munck (R$)', campoNumerico('munck', '0,00'),
+        'Carga ou descarga com munck, quando o cliente precisa. Somado uma vez ao total.'),
     ]),
 
     el('div', { classe: 'cartao' }, [

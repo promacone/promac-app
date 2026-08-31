@@ -4,7 +4,7 @@
 // e quem abre precisa ver o que dá para fazer. Só isso: os números do dia
 // ficam dentro de Contratações, onde há o que fazer com eles.
 
-import { el, icone } from '../ui.js?v=20260831114610'
+import { el, icone } from '../ui.js?v=20260831115307'
 
 export function telaInicio({ sessao, modulos, aoEscolher, aoSair, aoAbrirConta }) {
   return el('div', { classe: 'inicio' }, [
@@ -20,7 +20,7 @@ export function telaInicio({ sessao, modulos, aoEscolher, aoSair, aoAbrirConta }
     ]),
 
     el('div', { classe: 'inicio__marca' }, [
-      el('img', { classe: 'inicio__logo', src: 'icones/logo-clara.png?v=20260831114610', alt: 'PROMAC Transportes' }),
+      el('img', { classe: 'inicio__logo', src: 'icones/logo-clara.png?v=20260831115307', alt: 'PROMAC Transportes' }),
       el('p', { classe: 'inicio__chamada', texto: 'Selecione o módulo que deseja acessar' }),
     ]),
 

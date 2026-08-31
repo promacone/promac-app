@@ -3,9 +3,9 @@
 import {
   auth, signOut, deleteUser, reauthenticateWithCredential, EmailAuthProvider,
   mensagemDeErro,
-} from '../firebase.js?v=20260831114610'
-import { removerMembro } from '../equipe.js?v=20260831114610'
-import { el, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260831114610'
+} from '../firebase.js?v=20260831115307'
+import { removerMembro } from '../equipe.js?v=20260831115307'
+import { el, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260831115307'
 
 export function telaConta(sessao) {
   const senhaEl = el('input', {

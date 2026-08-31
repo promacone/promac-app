@@ -11,8 +11,8 @@
 // A impressão continua aqui como plano B: se a biblioteca não carregar
 // por qualquer motivo, a proposta ainda sai.
 
-import { el, render } from './ui.js?v=20260831114610'
-import { reais } from './frete.js?v=20260831114610'
+import { el, render } from './ui.js?v=20260831115307'
+import { reais } from './frete.js?v=20260831115307'
 
 /** Dados da PROMAC no rodapé. Ajustáveis no painel. */
 export const EMPRESA_PADRAO = {
@@ -45,7 +45,7 @@ let logoPronta = null
  */
 export function prepararProposta() {
   if (!bibliotecaPronta) {
-    bibliotecaPronta = import('./vendor/jspdf.umd.min.js?v=20260831114610')
+    bibliotecaPronta = import('./vendor/jspdf.umd.min.js?v=20260831115307')
       .then(() => globalThis.jspdf)
       .catch(() => null)
   }
@@ -309,7 +309,7 @@ async function entregar(doc, numero) {
 function imprimirComoAntes(dados, empresa, numero, validade) {
   const folha = el('div', { classe: 'proposta' }, [
     el('div', { classe: 'proposta__topo' }, [
-      el('img', { classe: 'proposta__logo', src: 'icones/logo.png?v=20260831114610', alt: 'PROMAC Transportes' }),
+      el('img', { classe: 'proposta__logo', src: 'icones/logo.png?v=20260831115307', alt: 'PROMAC Transportes' }),
       el('div', { classe: 'proposta__identificacao' }, [
         el('div', { classe: 'proposta__rotulo', texto: 'Proposta comercial' }),
         el('div', { classe: 'proposta__numero', texto: `Nº ${numero}` }),
