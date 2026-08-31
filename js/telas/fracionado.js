@@ -8,13 +8,13 @@
 
 import {
   calcularFrete, coeficientes, reais, percentual, numero,
-} from '../frete.js?v=20260824172528'
+} from '../frete.js?v=20260831104526'
 import {
   REGIOES, regiao, calcularFracionado, CUBAGEM_KG_POR_M3, capacidadeM3,
-} from '../fracionado.js?v=20260824172528'
-import { rotaComMemoria } from '../qualp.js?v=20260824172528'
-import { campoDeCidade } from '../cidades.js?v=20260824172528'
-import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260824172528'
+} from '../fracionado.js?v=20260831104526'
+import { rotaComMemoria } from '../qualp.js?v=20260831104526'
+import { campoDeCidade } from '../cidades.js?v=20260831104526'
+import { el, render, campo, linha, mostrarAviso, comCarregamento } from '../ui.js?v=20260831104526'
 
 export function telaFreteFracionado({ parametros }) {
   const estado = {
@@ -164,12 +164,16 @@ export function telaFreteFracionado({ parametros }) {
         : null,
 
       motor
-        ? linha(`Fator de rentabilidade (ocupação ${percentual(r.ocupacaoParaFator)})`,
-            `× ${r.fator.toFixed(2).replace('.', ',')}`)
+        ? linha(`Peso faturável${r.usouPesoMinimo ? ' (mínimo da tabela)' : ''}`,
+            `${Math.round(r.pesoFaturavel).toLocaleString('pt-BR')} kg`, r.usouPesoMinimo)
+        : null,
+      motor
+        ? linha(`Preço por kg (aproveitamento ${percentual(r.aproveitamento)})`,
+            `${reais(r.precoPorKg)}/kg`)
         : null,
 
-      linha('Rateio da carga', reais(r.rateio)),
-      r.embarque > 0 ? linha('Coleta e entrega (embarque)', reais(r.embarque)) : null,
+      linha('Frete peso', reais(r.rateio)),
+      r.despacho > 0 ? linha('Despacho', reais(r.despacho)) : null,
       linha(r.usouMinimo ? 'Frete-peso (mínimo aplicado)' : 'Frete-peso', reais(r.fretePeso), true),
 
       r.pedagioDaFatia > 0 ? linha('Pedágio incluso na fatia', reais(r.pedagioDaFatia)) : null,
@@ -184,7 +188,7 @@ export function telaFreteFracionado({ parametros }) {
         ? el('p', {
             classe: 'campo__ajuda',
             style: 'margin-top:10px',
-            texto: `Consolidação: sobra ${m3(r.consolidacao.restanteM3)} m³ no truck depois desta carga. Por aproveitar uma viagem já vendida, a ocupação subiu de faixa e o fator caiu.`,
+            texto: `Consolidação: sobra ${m3(r.consolidacao.restanteM3)} m³ no truck depois desta carga. Como a viagem já está vendida em parte, o aproveitamento subiu para ${percentual(r.aproveitamento)} e o quilo ficou mais barato.`,
           })
         : null,
 

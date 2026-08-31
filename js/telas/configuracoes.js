@@ -4,11 +4,11 @@
 // acesso e mexer em quanto se cobra são assuntos diferentes, e misturá-los
 // numa tela só confundia na hora de achar.
 
-import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260824172528'
-import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260824172528'
-import { regiao, FAIXAS_PADRAO } from '../fracionado.js?v=20260824172528'
-import { mensagemDeErro } from '../firebase.js?v=20260824172528'
-import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260824172528'
+import { salvarParametros, salvarAjustesFracionado } from '../equipe.js?v=20260831104526'
+import { RESOLUCAO_ANTT, percentual, numero } from '../frete.js?v=20260831104526'
+import { regiao } from '../fracionado.js?v=20260831104526'
+import { mensagemDeErro } from '../firebase.js?v=20260831104526'
+import { el, render, campo, mostrarAviso, comCarregamento } from '../ui.js?v=20260831104526'
 
 export function telaConfiguracoes(sessao) {
   const ehAdministrador = sessao.membro.papel === 'master'
@@ -126,42 +126,17 @@ export function telaConfiguracoes(sessao) {
    * Motor do frete fracionado — Sul e Sudeste.
    *
    * O que se ajusta aqui muda o preço para a equipe inteira na hora: o
-   * truck de referência, o embarque, o mínimo e as quatro faixas de
-   * margem por ocupação que o Pedro definiu.
+   * truck de referência, o aproveitamento médio, o peso mínimo
+   * faturável, o despacho e o frete mínimo.
    */
   function cartaoFracionado() {
     const padrao = regiao('sulSudeste')
     const atual = sessao.parametros.fracionado || {}
     const caminhaoAtual = { ...padrao.caminhao, ...(atual.caminhao || {}) }
-    const faixasAtuais = atual.faixas || padrao.faixas || FAIXAS_PADRAO
-
-    const avisoFrac = el('div')
-
-    const numerico = (valor) => el('input', {
-      type: 'text',
-      inputmode: 'decimal',
-      value: String(valor).replace('.', ','),
-      disabled: !ehAdministrador,
-    })
-
-    const capacidadeKg = numerico(caminhaoAtual.capacidadeKg)
-    const capacidadeM3 = numerico(caminhaoAtual.capacidadeM3 || 48)
-    const posicoes = numerico(caminhaoAtual.posicoes || 14)
-    const embarque = numerico(atual.embarque ?? padrao.embarque)
+    const embarque = numerico(atual.despacho ?? padrao.despacho)
     const minimo = numerico(atual.minimo ?? padrao.minimo)
-
-    // Uma linha por faixa: "até X% -> fator Y".
-    const camposFaixas = faixasAtuais.map((f) => ({
-      ate: numerico(Math.round(f.ate * 100)),
-      fator: numerico(f.fator),
-    }))
-
-    const rotulosFaixas = [
-      'Ocupação pequena — margem mais alta',
-      'Ocupação média — margem padrão',
-      'Ocupação grande — margem reduzida',
-      'Fecha o caminhão — margem mínima',
-    ]
+    const aproveitamento = numerico(Math.round((atual.aproveitamento ?? padrao.aproveitamento) * 100))
+    const pesoMinimo = numerico(atual.pesoMinimoFaturavel ?? padrao.pesoMinimoFaturavel)
 
     async function salvarFracionado(botao) {
       mostrarAviso(avisoFrac, '')
@@ -177,28 +152,19 @@ export function telaConfiguracoes(sessao) {
           capacidadeM3: lerNumero(capacidadeM3),
           posicoes: lerNumero(posicoes),
         },
-        embarque: numero(embarque.value),
+        aproveitamento: (lerNumero(aproveitamento) || 0) / 100,
+        pesoMinimoFaturavel: numero(pesoMinimo.value),
+        despacho: numero(embarque.value),
         minimo: numero(minimo.value),
-        faixas: camposFaixas.map((c) => ({
-          ate: (lerNumero(c.ate) || 0) / 100,
-          fator: lerNumero(c.fator),
-        })),
       }
 
       if (!dados.caminhao.capacidadeKg || !dados.caminhao.capacidadeM3) {
         mostrarAviso(avisoFrac, 'Capacidade de peso e de cubagem precisam ser maiores que zero.')
         return
       }
-      if (dados.faixas.some((f) => !f.fator || f.ate <= 0 || f.ate > 1)) {
-        mostrarAviso(avisoFrac, 'Cada faixa precisa de um limite entre 1 e 100% e um fator maior que zero.')
+      if (!(dados.aproveitamento > 0.2 && dados.aproveitamento <= 1)) {
+        mostrarAviso(avisoFrac, 'O aproveitamento precisa ficar entre 21% e 100%.')
         return
-      }
-      // Faixas fora de ordem fariam a interpolação andar para trás.
-      for (let i = 1; i < dados.faixas.length; i++) {
-        if (dados.faixas[i].ate <= dados.faixas[i - 1].ate) {
-          mostrarAviso(avisoFrac, 'Os limites das faixas precisam crescer: cada um maior que o anterior.')
-          return
-        }
       }
 
       await comCarregamento(botao, async () => {
@@ -222,25 +188,12 @@ export function telaConfiguracoes(sessao) {
       campo('Peso máximo do truck (kg)', capacidadeKg),
       campo('Cubagem máxima (m³)', capacidadeM3),
       campo('Posições de pallet', posicoes),
-      campo('Embarque — coleta e manuseio (R$)', embarque,
-        'Parcela fixa somada a toda cotação. É o que segura o preço da carga pequena.'),
+      campo('Aproveitamento médio do truck (%)', aproveitamento,
+        'Quanto do caminhão viaja vendido, na média. Quanto menor, mais caro fica o quilo — é a folga que a tabela precisa cobrir.'),
+      campo('Peso mínimo faturável (kg)', pesoMinimo,
+        'Nenhum despacho é cobrado abaixo disto. É o que impede a caixa pequena de viajar quase de graça.'),
+      campo('Despacho — papelada e manuseio (R$)', embarque),
       campo('Frete mínimo (R$)', minimo),
-
-      el('div', { classe: 'secao__titulo', style: 'margin-top:8px', texto: 'Margem por ocupação do truck' }),
-      ...camposFaixas.map((c, i) =>
-        el('div', { classe: 'faixa' }, [
-          el('div', { classe: 'campo__ajuda', texto: rotulosFaixas[i] || `Faixa ${i + 1}` }),
-          el('div', { classe: 'faixa__campos' }, [
-            el('label', { classe: 'volume__campo' }, [
-              el('span', { classe: 'volume__rotulo', texto: 'Até (%)' }),
-              c.ate,
-            ]),
-            el('label', { classe: 'volume__campo' }, [
-              el('span', { classe: 'volume__rotulo', texto: 'Fator' }),
-              c.fator,
-            ]),
-          ]),
-        ])),
 
       avisoFrac,
 

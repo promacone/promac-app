@@ -6,8 +6,8 @@
 import {
   bd, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs,
   serverTimestamp,
-} from './firebase.js?v=20260824172528'
-import { PARAMETROS_PADRAO } from './frete.js?v=20260824172528'
+} from './firebase.js?v=20260831104526'
+import { PARAMETROS_PADRAO } from './frete.js?v=20260831104526'
 
 /** Normaliza o e-mail: "Joao@" e "joao@" são a mesma pessoa. */
 export function chave(email) {
@@ -153,16 +153,10 @@ export async function carregarAjustesFracionado() {
     if (numeroPositivo(d.posicoes)) caminhao.posicoes = d.posicoes
     if (Object.keys(caminhao).length) ajustes.caminhao = caminhao
 
-    if (numeroPositivo(d.embarque) || d.embarque === 0) ajustes.embarque = d.embarque
+    if (numeroPositivo(d.aproveitamento)) ajustes.aproveitamento = d.aproveitamento
+    if (numeroPositivo(d.pesoMinimoFaturavel)) ajustes.pesoMinimoFaturavel = d.pesoMinimoFaturavel
+    if (numeroPositivo(d.despacho) || d.despacho === 0) ajustes.despacho = d.despacho
     if (numeroPositivo(d.minimo) || d.minimo === 0) ajustes.minimo = d.minimo
-
-    // As quatro faixas de margem por ocupação.
-    if (Array.isArray(d.faixas) && d.faixas.length) {
-      const faixas = d.faixas
-        .filter((f) => numeroPositivo(f?.ate) && numeroPositivo(f?.fator))
-        .sort((a, b) => a.ate - b.ate)
-      if (faixas.length) ajustes.faixas = faixas
-    }
 
     return Object.keys(ajustes).length ? ajustes : null
   } catch {
@@ -175,9 +169,10 @@ export async function salvarAjustesFracionado(ajustes) {
     capacidadeKg: ajustes.caminhao.capacidadeKg,
     capacidadeM3: ajustes.caminhao.capacidadeM3,
     posicoes: ajustes.caminhao.posicoes,
-    embarque: ajustes.embarque,
+    aproveitamento: ajustes.aproveitamento,
+    pesoMinimoFaturavel: ajustes.pesoMinimoFaturavel,
+    despacho: ajustes.despacho,
     minimo: ajustes.minimo,
-    faixas: ajustes.faixas,
   })
 }
 

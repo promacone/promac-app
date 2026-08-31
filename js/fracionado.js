@@ -5,21 +5,24 @@
 // caminhão de referência é um truck dedicado, cotado pela mesma conta do
 // frete dedicado (piso ANTT no km real + tabela comercial da PROMAC).
 //
-//   frete = embarque fixo + (fatia do truck × preço do truck × fator)
+//   preço por kg = venda do truck cheio ÷ (capacidade × aproveitamento)
+//   frete        = peso faturável × preço por kg + despacho
 //
-// O embarque cobre coleta, manuseio e emissão — custa parecido para
-// 30 kg ou 3 t, e é o que impede a carga pequena de sair de graça.
+// É o método que o setor ensina: pega-se o valor da carga lotação e
+// divide-se pela capacidade do veículo, descontando a ociosidade. O
+// truck não roda cheio todo dia — o aproveitamento médio é o que
+// transforma o preço do caminhão inteiro no preço do quilo.
 //
-// O fator varia com a ocupação (ver FAIXAS_PADRAO): carga pequena paga
-// proporcionalmente mais, porque o resto do caminhão ainda precisa ser
-// vendido; carga que quase fecha o truck paga quase o rateio seco,
-// porque ela é quem garante a viagem.
+// O peso faturável é o maior entre balança, cubagem e um piso mínimo
+// (100 kg): é assim que uma caixa de 5 kg não viaja de graça, sem
+// precisar de fator nenhum.
 //
-// Travas comerciais, nesta ordem:
-//   piso   — nunca abaixo do custo da fatia (piso ANTT proporcional);
-//   mínimo — nunca abaixo do frete mínimo por despacho;
-//   teto   — nunca acima do truck dedicado inteiro: chegou lá, o certo
-//            é vender o dedicado.
+// A versão anterior multiplicava a fatia por fatores de 1,3 a 2,9. Dava
+// para calibrar num ponto, mas nunca na curva inteira — e produzia
+// R$ 700 para 30 kg, sete vezes o mercado.
+//
+// Travas: nunca abaixo do custo ANTT da fatia; nunca abaixo do frete
+// mínimo; nunca acima do truck dedicado inteiro.
 //
 // Por enquanto o motor completo vale para o Sul/Sudeste; as outras
 // regiões seguem na cubagem comercial simples até serem calibradas.
@@ -27,51 +30,6 @@
 /** Quilos que 1 m³ representa no peso cubado. Padrão rodoviário. */
 export const CUBAGEM_KG_POR_M3 = 300
 
-/**
- * Margem por ocupação do truck, como o Pedro definiu:
- *
- *   até 10%  → fator mais alto (a carga pequena contribui mais)
- *   10–30%   → fator padrão
- *   30–60%   → fator reduzido, para competir
- *   acima    → fator mínimo (a carga fecha o caminhão)
- *
- * Entre os degraus o fator desce em linha reta, sem saltos: numa tabela
- * de degrau seco, 1 kg a mais faria o preço CAIR ao cruzar a faixa — e
- * cliente esperto descobriria isso rápido.
- */
-export const FAIXAS_PADRAO = [
-  { ate: 0.075, fator: 2.94 },
-  { ate: 0.215, fator: 1.81 },
-  { ate: 0.36, fator: 1.57 },
-  { ate: 1.00, fator: 1.35 },
-]
-// Curva ajustada aos preços reais do Pedro (2026-08-24), rota Ponta
-// Grossa -> São Paulo: 100 kg = 1.100 / 300 kg = 1.290 / 1 t = 1.980 /
-// 3 t = 2.980 / 5 t = 3.980 — depois reduzida em 10% uniformes, e por
-// fim com a ponta de até 300 kg abaixada mais um degrau: o embarque caiu
-// para 700 e os fatores subiram na mesma medida, de um jeito que os
-// preços de 1 t para cima não se moveram. Não é palpite de mercado: os fatores foram
-// resolvidos para o motor reproduzir esses cinco pontos com o embarque
-// de R$ 1.000. A cabeça do Pedro é quase linear — ~R$ 1.000 de base
-// mais ~R$ 0,95/kg até 1 t, e ~R$ 0,50/kg dali em diante — e é isso que
-// estas faixas desenham por cima da ocupação do truck.
-
-/** O fator na ocupação dada, interpolando entre as faixas. */
-export function fatorDeOcupacao(ocupacao, faixas = FAIXAS_PADRAO) {
-  const o = Math.max(0, Math.min(1, ocupacao))
-  if (!faixas.length) return 1
-  if (o <= faixas[0].ate) return faixas[0].fator
-
-  for (let i = 1; i < faixas.length; i++) {
-    const anterior = faixas[i - 1]
-    const atual = faixas[i]
-    if (o <= atual.ate) {
-      const posicao = (o - anterior.ate) / (atual.ate - anterior.ate)
-      return anterior.fator + (atual.fator - anterior.fator) * posicao
-    }
-  }
-  return faixas[faixas.length - 1].fator
-}
 
 export const REGIOES = [
   {
@@ -89,13 +47,17 @@ export const REGIOES = [
       posicoes: 14,
       bau: { comprimento: 8.5, largura: 2.4, altura: 2.8 },
     },
-    // O embarque de R$ 1.000 veio dos números do Pedro: qualquer carga
-    // PG -> SP começa em torno de R$ 1.100. É a parcela que a carga
-    // pequena paga pela viagem existir.
-    embarque: 700,
-    faixas: FAIXAS_PADRAO,
+    // Quanto do truck viaja vendido, na média do mês. É o desconto de
+    // ociosidade que o setor manda aplicar: o caminhão não fecha lotado
+    // todo dia, e quem paga essa folga é a tabela.
+    aproveitamento: 0.70,
+    // Nenhum despacho é faturado abaixo disto, por menor que seja a
+    // caixa — é o que substitui os antigos fatores por faixa.
+    pesoMinimoFaturavel: 100,
+    // Papelada e manuseio, por despacho.
+    despacho: 30,
+    minimo: 120,
     distanciaKm: 600,
-    minimo: 700,
     motorCompleto: true,
   },
   {
@@ -237,14 +199,26 @@ export function calcularFracionado({
       }
     : null
 
-  // 4) O preço.
-  const fator = r.motorCompleto
-    ? fatorDeOcupacao(ocupacaoParaFator, r.faixas)
-    : (r.fatorFracionado || 1)
+  // 4) O preço, pelo método do setor.
+  //
+  // A consolidação entra aqui: com parte do truck já vendida, o
+  // aproveitamento sobe, o quilo fica mais barato e a carga nova
+  // aproveita a viagem — sem precisar de regra à parte.
+  const aproveitamento = r.motorCompleto
+    ? Math.min(0.95, (r.aproveitamento || 0.7) + jaOcupado)
+    : 1
 
-  const rateio = cheioComPedagio * fatia * fator
-  const embarque = temCarga ? (r.embarque || 0) : 0
-  const proposto = rateio + embarque
+  const pesoMinimo = r.motorCompleto ? (r.pesoMinimoFaturavel || 0) : 0
+  const pesoFaturavel = temCarga ? Math.max(peso.cobravel, pesoMinimo) : 0
+  const usouPesoMinimo = temCarga && peso.cobravel < pesoMinimo
+
+  const precoPorKg = r.caminhao.capacidadeKg > 0
+    ? cheioComPedagio / (r.caminhao.capacidadeKg * aproveitamento)
+    : 0
+
+  const despacho = temCarga && r.motorCompleto ? (r.despacho || 0) : 0
+  const rateio = pesoFaturavel * precoPorKg
+  const proposto = rateio + despacho
 
   // 5) As travas, do chão ao teto.
   const pisoDeCusto = custoCheio * fatia
@@ -281,9 +255,12 @@ export function calcularFracionado({
     cobrouPorEspaco: espacoDoBau ? fatiaEspaco > fatiaPeso : peso.cubou,
     ocupacaoParaFator,
     consolidacao,
-    fator,
+    aproveitamento,
+    precoPorKg,
+    pesoFaturavel,
+    usouPesoMinimo,
     rateio,
-    embarque,
+    despacho,
     pisoDeCusto,
     margemEstimada,
     fretePeso,
